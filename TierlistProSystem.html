@@ -1,0 +1,3459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, initial-scale=1.0">
+    <title>Tierlist Pro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <style>
+        :root {
+            --accent-hue: 40;
+            --accent-sat: 48%;
+            --accent-light: 54%;
+            --accent: hsl(var(--accent-hue), var(--accent-sat), var(--accent-light));
+            --accent-hover: hsl(var(--accent-hue), var(--accent-sat), calc(var(--accent-light) + 7%));
+            --accent-soft: hsla(var(--accent-hue), var(--accent-sat), var(--accent-light), 0.14);
+            --accent-border: hsla(var(--accent-hue), var(--accent-sat), var(--accent-light), 0.34);
+
+            --bg-opacity: 1;
+            --surface-base: rgba(13, 16, 23, var(--bg-opacity));
+            --surface-panel: rgba(19, 23, 32, calc(var(--bg-opacity) * 0.94));
+            --surface-solid: #11151e;
+            --surface-solid-2: #181d29;
+            --surface-solid-3: #202736;
+
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-strong: rgba(255, 255, 255, 0.16);
+
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+
+            --success: #10b981;
+            --danger: #dc2626;
+            --danger-soft: rgba(220, 38, 38, 0.16);
+            --warning: #f59e0b;
+
+            --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --font-display: 'Barlow Condensed', 'Inter', sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html {
+            background: transparent;
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: var(--font-ui);
+            background-color: var(--surface-base);
+            color: var(--text-primary);
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+            position: relative;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        ::selection { background: var(--accent-soft); color: var(--text-primary); }
+        button, input, select { font-family: inherit; }
+        button:focus-visible, input:focus-visible, select:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        .icon {
+            width: 16px; height: 16px;
+            stroke: currentColor; stroke-width: 1.75;
+            stroke-linecap: round; stroke-linejoin: round;
+            fill: none; flex-shrink: 0;
+        }
+        .icon-sm { width: 14px; height: 14px; }
+        .icon-lg { width: 24px; height: 24px; }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.24); }
+
+        /* Main 1920x1080 Broadcast Layout */
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+        }
+
+        /* Unified Header */
+        .unified-header {
+            width: 1920px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            background: var(--surface-panel);
+            border-bottom: 1px solid var(--border-subtle);
+            flex-shrink: 0;
+        }
+        .header-left {
+            width: 1400px;
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header-right {
+            width: 520px;
+            padding: 0 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-left: 1px solid var(--border-subtle);
+            height: 100%;
+        }
+
+        .title {
+            font-family: var(--font-display);
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-primary);
+        }
+
+        /* Connection Pill */
+        .connection-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .connection-pill:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--border-strong);
+        }
+        .connection-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); flex-shrink: 0; }
+        .connection-pill.connected .connection-dot { background: var(--success); }
+        .connection-pill.connecting .connection-dot { background: var(--warning); }
+        .connection-pill.disconnected .connection-dot { background: var(--danger); }
+
+        .timer-wrapper { display: flex; align-items: center; gap: 8px; }
+        .timer-label {
+            font-size: 11px; font-weight: 600;
+            letter-spacing: 0.06em; text-transform: uppercase;
+            color: var(--text-muted);
+        }
+        .timer-display {
+            font-family: var(--font-display);
+            font-size: 28px; font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            color: var(--text-primary);
+            min-width: 44px; text-align: right; line-height: 1;
+        }
+        .timer-display.finished { color: var(--text-muted); }
+
+        .header-icon-btn {
+            width: 30px; height: 30px;
+            display: inline-flex; align-items: center; justify-content: center;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px; cursor: pointer;
+            color: var(--text-secondary);
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+        .header-icon-btn:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+            border-color: var(--border-strong);
+        }
+        .header-icon-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .header-icon-btn.paused {
+            color: var(--accent);
+            background: var(--accent-soft);
+            border-color: var(--accent-border);
+        }
+
+        .mode-toggle {
+            display: flex; align-items: center; gap: 8px;
+            margin-left: 6px; padding-left: 12px;
+            border-left: 1px solid var(--border-subtle);
+        }
+        .toggle-label {
+            font-size: 11px; font-weight: 600;
+            letter-spacing: 0.06em; text-transform: uppercase;
+            color: var(--text-secondary);
+        }
+        .toggle-switch {
+            position: relative; width: 38px; height: 20px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 999px; border: 1px solid var(--border-strong);
+            cursor: pointer; transition: background 0.2s, border-color 0.2s; padding: 0;
+        }
+        .toggle-switch.active { background: var(--accent); border-color: var(--accent); }
+        .toggle-slider {
+            position: absolute; top: 2px; left: 2px;
+            width: 14px; height: 14px;
+            background: #ffffff; border-radius: 50%;
+            transition: transform 0.2s; pointer-events: none;
+        }
+        .toggle-switch.active .toggle-slider { transform: translateX(18px); }
+
+        /* Left: Tierlist Section */
+        .tierlist-section {
+            width: 1400px;
+            height: 1032px;
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+            gap: 10px;
+            position: relative;
+        }
+
+        .tiers-container {
+            flex-shrink: 1;
+            max-height: 660px;
+            overflow-y: auto;
+            background: var(--surface-panel);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 8px;
+        }
+
+        .tier-row {
+            display: flex;
+            margin-bottom: 6px;
+            border-radius: 6px;
+            min-height: 94px;
+            border: 1px solid var(--border-subtle);
+            background: rgba(0, 0, 0, 0.22);
+            overflow: hidden;
+        }
+        .tier-row:last-child { margin-bottom: 0; }
+
+        .tier-label {
+            width: 92px;
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-display); font-weight: 700;
+            color: #ffffff; border: none;
+            border-right: 1px solid var(--border-subtle);
+            cursor: pointer; transition: filter 0.15s;
+            overflow: hidden; padding: 6px 8px; text-align: center;
+            word-break: normal; overflow-wrap: break-word;
+            line-height: 1.08; flex-shrink: 0;
+        }
+        .tier-label:hover { filter: brightness(1.12); }
+
+        .tier-content {
+            flex: 1; padding: 8px 10px;
+            display: flex; flex-wrap: wrap;
+            gap: 8px; align-content: flex-start;
+            transition: background 0.15s;
+        }
+        .tier-content.drag-over { background: var(--accent-soft); }
+
+        /* Items */
+        .item {
+            background: var(--surface-solid-2);
+            border: 2px solid var(--border-subtle);
+            border-radius: 6px; cursor: grab;
+            overflow: hidden; position: relative;
+            transition: border-color 0.15s, transform 0.15s;
+        }
+        .item.size-90 { width: 90px; height: 90px; }
+        .item.size-75 { width: 75px; height: 75px; }
+        .item:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+        .item.dragging { opacity: 0.45; cursor: grabbing; }
+        .item.current { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+        .item.selected { border-color: #ffffff; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25); }
+
+        .item-image { width: 100%; object-fit: cover; display: block; }
+        .item.size-90 .item-image { height: 68px; }
+        .item.size-75 .item-image { height: 53px; }
+        .item.icon-only .item-image { height: 100% !important; }
+        .item.icon-only .item-name { display: none !important; }
+
+        .item-name {
+            padding: 2px 4px; font-size: 10px; font-weight: 500;
+            text-align: center; background: rgba(10, 12, 18, 0.88);
+            color: var(--text-primary); overflow: hidden;
+            text-overflow: ellipsis; white-space: nowrap;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .item.size-90 .item-name { height: 20px; font-size: 10px; }
+        .item.size-75 .item-name { height: 20px; font-size: 9px; }
+
+        .item-actions {
+            position: absolute; inset: 0;
+            background: rgba(10, 12, 18, 0.86);
+            display: none; flex-direction: column;
+            justify-content: center; align-items: center;
+            gap: 4px; padding: 6px; z-index: 10;
+        }
+        .item:hover .item-actions { display: flex; }
+
+        .item-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-strong);
+            color: var(--text-primary); font-size: 11px; font-weight: 600;
+            padding: 4px 10px; border-radius: 4px; cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .item-btn.danger:hover { background: var(--danger); border-color: var(--danger); }
+
+        @keyframes placeItem {
+            0% { transform: scale(0.92); }
+            60% { transform: scale(1.06); }
+            100% { transform: scale(1); }
+        }
+        .item.placing { animation: placeItem 0.35s ease-out; }
+
+        /* Unplaced Section */
+        .unplaced-section {
+            flex: 1;
+            min-height: 170px;
+            padding: 10px 14px 8px;
+            background: var(--surface-panel);
+            border-radius: 8px;
+            border: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .unplaced-header {
+            display: flex; align-items: center; gap: 14px;
+            margin-bottom: 10px; flex-shrink: 0;
+        }
+        .unplaced-label {
+            font-size: 12px; font-weight: 600;
+            letter-spacing: 0.06em; text-transform: uppercase;
+            color: var(--text-secondary); white-space: nowrap;
+        }
+        .progress-bar-container { display: flex; align-items: center; gap: 10px; flex: 1; }
+        .progress-info {
+            font-family: var(--font-display);
+            font-size: 14px; font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            color: var(--text-secondary); white-space: nowrap;
+        }
+        .progress-bar {
+            flex: 1; height: 6px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 999px; overflow: hidden;
+        }
+        .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.35s ease; }
+
+        .unplaced-items {
+            flex: 1; overflow-y: auto;
+            display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start;
+        }
+        .unplaced-empty {
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 10px; color: var(--text-muted); font-size: 13px; text-align: center; padding: 16px;
+        }
+
+        /* Hotkeys Bar (integrated cleanly at bottom of unplaced panel) */
+        .hotkeys {
+            display: flex; align-items: center; justify-content: center;
+            gap: 20px; font-size: 11px; color: var(--text-muted);
+            flex-shrink: 0; padding-top: 8px; margin-top: 6px;
+            border-top: 1px solid var(--border-subtle);
+        }
+        .hotkey { display: inline-flex; align-items: center; gap: 6px; }
+        .hotkey-key {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border-subtle);
+            padding: 2px 7px; border-radius: 4px;
+            font-size: 11px; font-weight: 600; color: var(--text-secondary);
+        }
+
+        /* Right: Voting + Chat Section */
+        .voting-section {
+            width: 520px; height: 1032px;
+            display: flex; flex-direction: column;
+            border-left: 1px solid var(--border-subtle);
+            background: var(--surface-panel);
+        }
+        .voting-container { height: 468px; display: flex; flex-direction: column; flex-shrink: 0; position: relative; }
+
+        .item-preview {
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 8px; flex-shrink: 0; min-height: 128px;
+        }
+        .preview-image {
+            width: 80px; height: 80px; border-radius: 8px;
+            object-fit: cover; border: 1px solid var(--border-strong);
+            background: var(--surface-solid-2);
+        }
+        .preview-placeholder {
+            width: 80px; height: 80px; border-radius: 8px;
+            border: 1px dashed var(--border-strong);
+            background: rgba(255, 255, 255, 0.02);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text-muted);
+        }
+        .preview-name {
+            font-family: var(--font-display);
+            font-size: 18px; font-weight: 600;
+            color: var(--text-primary); letter-spacing: 0.04em;
+            text-align: center; max-width: 100%;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .preview-action-btn {
+            background: var(--accent-soft); border: 1px solid var(--accent-border);
+            color: var(--text-primary); font-size: 12px; font-weight: 600;
+            padding: 5px 12px; border-radius: 5px; cursor: pointer;
+            transition: background 0.15s;
+        }
+        .preview-action-btn:hover { background: var(--accent); color: #090d12; }
+
+        .chart-container { flex: 1; padding: 12px 18px 8px; min-height: 0; position: relative; }
+        .chart-wrapper { height: 100%; position: relative; }
+
+        /* Live Vote Ticker (subtle, non-intrusive) */
+        .vote-ticker {
+            position: absolute;
+            top: 8px;
+            right: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 3px;
+            pointer-events: none;
+            z-index: 5;
+        }
+        .vote-tick {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            background: rgba(17, 21, 30, 0.85);
+            border: 1px solid var(--border-subtle);
+            padding: 2px 8px;
+            border-radius: 999px;
+            animation: tickIn 0.2s ease-out;
+        }
+        @keyframes tickIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .stats-section {
+            padding: 10px 18px;
+            background: rgba(255, 255, 255, 0.02);
+            border-top: 1px solid var(--border-subtle);
+            border-bottom: 1px solid var(--border-subtle);
+            flex-shrink: 0;
+        }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 10px; align-items: center; }
+        .stat-item { text-align: center; min-width: 0; }
+        .stat-value {
+            font-family: var(--font-display);
+            font-size: 24px; font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            color: var(--text-primary); line-height: 1.15; margin-bottom: 2px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .stat-label {
+            font-size: 11px; font-weight: 600;
+            letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted);
+        }
+
+        .controls { padding: 10px 18px; display: flex; gap: 10px; flex-shrink: 0; }
+        .btn {
+            flex: 1; padding: 10px 14px; border-radius: 6px;
+            font-size: 13px; font-weight: 600;
+            letter-spacing: 0.04em; text-transform: uppercase;
+            cursor: pointer; transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .btn-start { background: var(--accent); border: 1px solid var(--accent); color: #090d12; }
+        .btn-start:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+        .btn-start:disabled {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: var(--border-subtle); color: var(--text-muted); cursor: not-allowed;
+        }
+        .btn-reset { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-strong); color: var(--text-primary); }
+        .btn-reset:hover { background: rgba(255, 255, 255, 0.1); }
+
+        /* Control Panel */
+        .control-panel {
+            min-height: 44px; flex-shrink: 0;
+            background: rgba(0, 0, 0, 0.25);
+            border-top: 1px solid var(--border-subtle);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 6px; padding: 6px 12px;
+        }
+        .ctrl-group-nav { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+        .ctrl-group-tiers {
+            display: flex; align-items: center; justify-content: center;
+            flex-wrap: wrap; gap: 4px; flex: 1; min-width: 0;
+        }
+        .ctrl-btn {
+            height: 30px; min-width: 28px; padding: 0 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary); border-radius: 5px;
+            cursor: pointer; font-size: 12px; font-weight: 600;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        .ctrl-btn:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--text-primary); border-color: var(--border-strong);
+        }
+        .ctrl-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .ctrl-btn.tier-vote {
+            font-family: var(--font-display);
+            font-size: 13px; font-weight: 700; min-width: 32px; max-width: 96px;
+            color: var(--text-primary);
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            display: inline-block; line-height: 28px; text-align: center;
+        }
+        .ctrl-btn.tier-vote.voted { background: var(--accent); border-color: var(--accent); color: #090d12; }
+        .ctrl-btn.skip-btn { background: var(--danger-soft); border-color: rgba(220, 38, 38, 0.35); color: #fca5a5; }
+        .ctrl-btn.skip-btn:hover:not(:disabled) { background: var(--danger); border-color: var(--danger); color: #ffffff; }
+
+        /* Chat Space (OBS 520x520 - never covered by voting overlays) */
+        .chat-space {
+            height: 520px; flex-shrink: 0;
+            background: rgba(0, 0, 0, 0.14);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .chat-placeholder {
+            font-size: 12px; font-weight: 500;
+            color: var(--text-muted); text-align: center;
+            padding: 8px 14px; border: 1px dashed var(--border-subtle); border-radius: 6px;
+        }
+        .chat-space.hidden-guide .chat-placeholder { display: none; }
+
+        /* ==========================================
+           SETTINGS DRAWER (Tabbed, Sticky Header/Footer)
+           ========================================== */
+        .settings-backdrop {
+            position: fixed; inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 1990; opacity: 0; pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+        .settings-backdrop.open { opacity: 1; pointer-events: auto; }
+
+        .settings-panel {
+            position: fixed; top: 0; right: -680px;
+            width: 680px; height: 100vh; max-height: 1080px;
+            background: var(--surface-solid);
+            border-left: 1px solid var(--border-strong);
+            z-index: 2000;
+            transition: right 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex; flex-direction: column;
+            box-shadow: -8px 0 32px rgba(0, 0, 0, 0.6);
+        }
+        .settings-panel.open { right: 0; }
+
+        .settings-header {
+            background: var(--surface-solid-2);
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+        }
+        .settings-title {
+            font-family: var(--font-display);
+            font-size: 22px; font-weight: 700;
+            letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-primary);
+        }
+        .close-settings {
+            width: 32px; height: 32px;
+            display: inline-flex; align-items: center; justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px; color: var(--text-secondary); cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+        .close-settings:hover { background: rgba(255, 255, 255, 0.12); color: var(--text-primary); }
+
+        .settings-tabs {
+            display: flex; gap: 4px; padding: 10px 20px 0;
+            background: var(--surface-solid-2);
+            border-bottom: 1px solid var(--border-subtle); flex-shrink: 0;
+        }
+        .settings-tab {
+            padding: 9px 13px; background: transparent;
+            border: none; border-bottom: 2px solid transparent;
+            color: var(--text-muted); font-size: 13px; font-weight: 600;
+            cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s;
+            border-radius: 6px 6px 0 0;
+        }
+        .settings-tab:hover { color: var(--text-primary); background: rgba(255, 255, 255, 0.04); }
+        .settings-tab.active {
+            color: var(--text-primary);
+            border-bottom-color: var(--accent);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .settings-content { flex: 1; overflow-y: auto; padding: 20px; }
+        .settings-tab-pane { display: none; }
+        .settings-tab-pane.active { display: block; }
+
+        .settings-section {
+            margin-bottom: 24px; padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .settings-section:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+        .section-title {
+            font-size: 12px; font-weight: 700;
+            letter-spacing: 0.08em; text-transform: uppercase;
+            color: var(--text-muted); margin-bottom: 14px;
+        }
+
+        .settings-footer {
+            padding: 14px 20px; background: var(--surface-solid-2);
+            border-top: 1px solid var(--border-subtle);
+            display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+        }
+        .settings-footer-meta { font-size: 12px; color: var(--text-muted); margin-right: auto; }
+
+        /* Forms */
+        .form-group { margin-bottom: 16px; }
+        .form-group:last-child { margin-bottom: 0; }
+        .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .form-label {
+            font-size: 13px; font-weight: 500;
+            color: var(--text-secondary); margin-bottom: 6px;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .form-hint { font-size: 12px; color: var(--text-muted); margin-top: 6px; line-height: 1.4; }
+        .form-input {
+            width: 100%; background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-strong); border-radius: 6px;
+            color: var(--text-primary); font-size: 14px; padding: 9px 12px;
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .form-input::placeholder { color: var(--text-muted); opacity: 0.7; }
+        .form-input:focus { outline: none; border-color: var(--accent); background: rgba(255, 255, 255, 0.07); }
+        select.form-input { background: var(--surface-solid-2); cursor: pointer; }
+
+        .checkbox-label {
+            display: flex; align-items: flex-start; gap: 10px; cursor: pointer;
+            padding: 10px 12px; background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-subtle); border-radius: 6px;
+        }
+        .checkbox-label input[type="checkbox"] {
+            margin-top: 2px; width: 16px; height: 16px;
+            accent-color: var(--accent); cursor: pointer;
+        }
+        .checkbox-title { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+        .checkbox-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+        .radio-group { display: flex; flex-direction: column; gap: 8px; }
+        .radio-option {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-subtle); border-radius: 6px;
+            cursor: pointer; transition: background 0.15s, border-color 0.15s;
+        }
+        .radio-option:hover { background: rgba(255, 255, 255, 0.06); border-color: var(--border-strong); }
+        .radio-option input[type="radio"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+        .radio-label { font-size: 13px; font-weight: 500; color: var(--text-primary); cursor: pointer; flex: 1; }
+        .radio-desc { font-size: 12px; color: var(--text-muted); font-weight: 400; margin-top: 2px; }
+
+        /* Buttons */
+        .btn-primary {
+            background: var(--accent); border: 1px solid var(--accent); color: #090d12;
+            padding: 10px 16px; border-radius: 6px; cursor: pointer;
+            font-size: 13px; font-weight: 600;
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            transition: background 0.15s;
+        }
+        .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-strong); color: var(--text-primary);
+            padding: 10px 16px; border-radius: 6px; cursor: pointer;
+            font-size: 13px; font-weight: 600;
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .btn-secondary:hover { background: rgba(255, 255, 255, 0.1); }
+
+        .btn-danger {
+            background: var(--danger-soft); border: 1px solid rgba(220, 38, 38, 0.45); color: #fecaca;
+            padding: 10px 16px; border-radius: 6px; cursor: pointer;
+            font-size: 13px; font-weight: 600;
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+        }
+        .btn-danger:hover, .btn-danger.confirming {
+            background: var(--danger); border-color: #fca5a5; color: #ffffff;
+        }
+
+        .btn-icon {
+            background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-subtle);
+            color: var(--text-secondary); width: 32px; height: 32px; border-radius: 6px;
+            cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+        .btn-icon:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.12); color: var(--text-primary); border-color: var(--border-strong);
+        }
+        .btn-icon:disabled { opacity: 0.3; cursor: not-allowed; }
+        .btn-icon.delete:hover:not(:disabled) {
+            background: var(--danger-soft); border-color: rgba(220, 38, 38, 0.5); color: #fca5a5;
+        }
+
+        .btn-add {
+            background: var(--accent); border: 1px solid var(--accent); color: #090d12;
+            padding: 9px 16px; border-radius: 6px; cursor: pointer;
+            font-size: 13px; font-weight: 600;
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            transition: background 0.15s;
+        }
+        .btn-add:hover { background: var(--accent-hover); }
+
+        .btn-small {
+            background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border-subtle);
+            color: var(--text-secondary); padding: 5px 10px; border-radius: 4px;
+            cursor: pointer; font-size: 12px; font-weight: 500;
+            transition: background 0.15s, color 0.15s;
+        }
+        .btn-small:hover { background: rgba(255, 255, 255, 0.12); color: var(--text-primary); }
+
+        /* Tiers, Criteria, Upload, Items */
+        .tier-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-subtle);
+            padding: 10px 12px; border-radius: 6px; margin-bottom: 8px;
+        }
+        .tier-color-preview {
+            width: 36px; height: 36px; border-radius: 6px;
+            border: 1px solid var(--border-strong); cursor: pointer; flex-shrink: 0;
+        }
+        .add-tier-form { display: flex; gap: 8px; margin-top: 12px; }
+
+        .criteria-list { margin-top: 10px; }
+        .criterion-item {
+            display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle);
+            padding: 8px 10px; border-radius: 6px;
+        }
+        .criterion-number { font-size: 12px; font-weight: 600; color: var(--text-muted); min-width: 18px; }
+        .criterion-input { flex: 1; background: transparent; border: none; color: var(--text-primary); font-size: 13px; padding: 4px; }
+        .criterion-input:focus { outline: none; }
+        .add-criterion-btn {
+            width: 100%; background: rgba(255, 255, 255, 0.03);
+            border: 1px dashed var(--border-strong); color: var(--text-secondary);
+            padding: 9px; border-radius: 6px; cursor: pointer;
+            font-size: 13px; font-weight: 500; margin-top: 8px;
+        }
+        .add-criterion-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.07); color: var(--text-primary); }
+        .add-criterion-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .criteria-counter { font-size: 12px; color: var(--text-muted); margin-top: 6px; text-align: right; }
+
+        .upload-area {
+            border: 1px dashed var(--border-strong); border-radius: 8px;
+            padding: 24px 20px; text-align: center; cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .upload-area:hover, .upload-area.dragover { border-color: var(--accent); background: var(--accent-soft); }
+        .upload-icon { color: var(--text-muted); margin-bottom: 8px; display: flex; justify-content: center; }
+        .upload-text { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+
+        .upload-table { margin-top: 14px; display: none; }
+        .upload-table.active { display: block; }
+        .upload-quick-actions { margin-bottom: 10px; display: flex; gap: 8px; }
+        .upload-item {
+            background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle);
+            padding: 10px; border-radius: 6px; margin-bottom: 8px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .upload-preview { width: 52px; height: 52px; border-radius: 6px; object-fit: cover; border: 1px solid var(--border-subtle); }
+        .upload-info { flex: 1; min-width: 0; }
+        .upload-filename { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .upload-name-input {
+            width: 100%; background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-strong); border-radius: 4px;
+            color: var(--text-primary); font-size: 13px; padding: 6px 8px;
+        }
+        .upload-actions { display: flex; gap: 6px; flex-direction: column; }
+
+        .items-toolbar { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+        .item-list { max-height: 330px; overflow-y: auto; }
+        .settings-item {
+            background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle);
+            padding: 7px 10px; border-radius: 6px; margin-bottom: 6px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .item-thumb { width: 40px; height: 40px; border-radius: 5px; object-fit: cover; border: 1px solid var(--border-subtle); flex-shrink: 0; }
+        .item-inline-name {
+            flex: 1; background: transparent; border: 1px solid transparent;
+            border-radius: 4px; color: var(--text-primary); font-size: 13px; padding: 5px 8px;
+        }
+        .item-inline-name:hover { border-color: var(--border-subtle); }
+        .item-inline-name:focus { outline: none; background: rgba(255, 255, 255, 0.06); border-color: var(--accent); }
+
+        .info-callout {
+            background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle);
+            border-radius: 6px; padding: 12px 14px; font-size: 12px;
+            color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px;
+        }
+        .info-callout strong { color: var(--text-primary); }
+
+        .swatch-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+        .swatch-btn {
+            width: 28px; height: 28px; border-radius: 6px;
+            border: 2px solid transparent; cursor: pointer;
+            transition: transform 0.12s, border-color 0.12s;
+        }
+        .swatch-btn:hover { transform: scale(1.08); border-color: #ffffff; }
+
+        /* Modals */
+        .modal-backdrop {
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.78);
+            display: none; align-items: center; justify-content: center; z-index: 3500;
+        }
+        .modal-backdrop.active { display: flex; }
+        .modal-card {
+            background: var(--surface-solid-2); border: 1px solid var(--border-strong);
+            border-radius: 10px; padding: 24px; width: 440px; max-width: 92vw;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
+        }
+        .modal-title {
+            font-family: var(--font-display); font-size: 20px; font-weight: 700;
+            letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-primary); margin-bottom: 16px;
+        }
+        .color-slider { margin-bottom: 14px; }
+        .slider-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; display: flex; justify-content: space-between; }
+        .slider-input {
+            width: 100%; height: 6px; border-radius: 3px; outline: none;
+            -webkit-appearance: none; background: rgba(255, 255, 255, 0.12);
+        }
+        .slider-input::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 16px; height: 16px;
+            border-radius: 50%; background: #ffffff; cursor: pointer;
+        }
+        .color-preview-large {
+            width: 100%; height: 64px; border-radius: 8px; margin: 14px 0 18px;
+            border: 1px solid var(--border-strong);
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-display); font-size: 18px; font-weight: 600;
+        }
+        .modal-actions { display: flex; gap: 10px; }
+
+        .token-help-btn {
+            background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border-subtle);
+            color: var(--text-secondary); font-size: 11px; font-weight: 600;
+            padding: 2px 7px; border-radius: 4px; cursor: pointer; margin-left: auto;
+        }
+        .token-help-btn:hover { color: var(--text-primary); background: rgba(255, 255, 255, 0.12); }
+        .token-help-steps { font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
+        .token-help-steps ol { margin-left: 18px; margin-bottom: 12px; }
+        .token-help-steps a { color: var(--accent); text-decoration: none; }
+        .token-help-steps a:hover { text-decoration: underline; }
+
+        /* ==========================================
+           ON-STREAM OVERLAYS (Scoped to Left 1400px so Chat Space 520x520 stays visible!)
+           ========================================== */
+        .pause-overlay, .end-overlay, .skip-overlay, .final-overlay {
+            position: fixed;
+            top: 48px;
+            left: 0;
+            width: 1400px;
+            height: 1032px;
+            background: rgba(11, 14, 20, 0.92);
+            backdrop-filter: blur(6px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .pause-overlay { z-index: 1500; }
+        .end-overlay { z-index: 1600; }
+        .skip-overlay { z-index: 1650; }
+        .final-overlay { z-index: 1700; }
+        .pause-overlay.active, .end-overlay.active, .skip-overlay.active, .final-overlay.active { display: flex; }
+
+        .pause-content, .end-message, .skip-message, .final-message {
+            text-align: center;
+            max-width: 580px;
+            width: 90%;
+            background: var(--surface-solid);
+            border: 1px solid var(--border-strong);
+            border-radius: 12px;
+            padding: 32px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+        }
+        .pause-preview-image {
+            width: 168px; height: 168px; margin: 0 auto 18px;
+            border-radius: 10px; object-fit: cover;
+            border: 1px solid var(--border-strong); display: block;
+        }
+        .pause-preview-name {
+            font-family: var(--font-display); font-size: 28px; font-weight: 700;
+            color: var(--text-primary); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 18px;
+        }
+        .pause-criteria {
+            background: var(--surface-solid-2); border: 1px solid var(--border-subtle);
+            border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; text-align: left;
+        }
+        .pause-criteria-title {
+            font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+            text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;
+        }
+        .pause-criterion { font-size: 14px; color: var(--text-secondary); line-height: 1.65; padding-left: 14px; position: relative; }
+        .pause-criterion::before {
+            content: ''; position: absolute; left: 0; top: 9px;
+            width: 5px; height: 5px; border-radius: 50%; background: var(--accent);
+        }
+        .pause-title {
+            font-size: 12px; font-weight: 600; letter-spacing: 0.08em;
+            text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;
+        }
+        .pause-timer {
+            font-family: var(--font-display); font-size: 54px; font-weight: 700;
+            font-variant-numeric: tabular-nums; color: var(--text-primary); margin-bottom: 20px;
+        }
+        .pause-skip {
+            background: var(--accent); border: none; color: #090d12;
+            padding: 11px 26px; border-radius: 6px; cursor: pointer;
+            font-size: 13px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+        }
+        .pause-skip:hover { background: var(--accent-hover); }
+
+        .end-title {
+            font-family: var(--font-display); font-size: 40px; font-weight: 700;
+            letter-spacing: 0.06em; color: var(--accent); text-transform: uppercase; margin-bottom: 8px;
+        }
+        .end-subtitle { font-size: 15px; color: var(--text-secondary); margin-bottom: 18px; }
+        .end-score {
+            font-family: var(--font-display); font-size: 60px; font-weight: 700;
+            font-variant-numeric: tabular-nums; color: var(--text-primary); line-height: 1;
+        }
+        .end-score-label {
+            font-size: 12px; color: var(--text-muted); text-transform: uppercase;
+            letter-spacing: 0.06em; margin-top: 6px;
+        }
+        .end-progress {
+            width: 100%; height: 28px; background: rgba(255, 255, 255, 0.06);
+            border-radius: 999px; overflow: hidden; margin: 16px 0;
+        }
+        .end-progress-fill {
+            height: 100%; transition: width 0.6s ease;
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-display); font-size: 15px; font-weight: 700;
+        }
+        .end-breakdown {
+            background: var(--surface-solid-2); border: 1px solid var(--border-subtle);
+            padding: 14px; border-radius: 8px; margin-top: 18px; text-align: left;
+        }
+        .breakdown-title {
+            font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+            color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;
+        }
+        .breakdown-item {
+            display: flex; justify-content: space-between;
+            padding: 6px 10px; margin-bottom: 4px;
+            background: rgba(255, 255, 255, 0.02); border-radius: 4px; font-size: 13px;
+        }
+        .breakdown-tier { font-weight: 700; min-width: 70px; }
+        .breakdown-votes { color: var(--text-secondary); }
+        .breakdown-points { color: var(--text-primary); font-weight: 600; }
+        .breakdown-total {
+            border-top: 1px solid var(--border-subtle); margin-top: 8px; padding-top: 8px;
+            font-size: 13px; font-weight: 600; color: var(--text-primary); text-align: center;
+        }
+
+        .skip-title {
+            font-family: var(--font-display); font-size: 38px; font-weight: 700;
+            letter-spacing: 0.06em; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px;
+        }
+        .skip-subtitle { font-size: 14px; color: var(--text-muted); }
+
+        .final-title {
+            font-family: var(--font-display); font-size: 48px; font-weight: 700;
+            letter-spacing: 0.06em; color: var(--accent); text-transform: uppercase; margin-bottom: 10px;
+        }
+        .final-subtitle { font-size: 16px; color: var(--text-secondary); margin-bottom: 10px; }
+        .final-stats { font-family: var(--font-display); font-size: 24px; color: var(--text-muted); margin-bottom: 24px; }
+        .final-actions { display: flex; gap: 12px; justify-content: center; }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 24px; left: 24px;
+            background: var(--surface-solid-3); border: 1px solid var(--border-strong);
+            color: var(--text-primary); padding: 10px 18px; border-radius: 6px;
+            font-size: 13px; font-weight: 500; opacity: 0; transform: translateY(12px);
+            transition: opacity 0.2s, transform 0.2s; z-index: 10000; pointer-events: none;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+    </style>
+</head>
+<body>
+    <div class="settings-backdrop" id="settingsBackdrop" onclick="toggleSettings(false)"></div>
+
+    <aside class="settings-panel" id="settingsPanel" aria-label="Settings">
+        <div class="settings-header">
+            <div class="settings-title" data-i18n="settingsTitle">Settings</div>
+            <button type="button" class="close-settings" onclick="toggleSettings(false)" aria-label="Close settings">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <nav class="settings-tabs" role="tablist">
+            <button type="button" class="settings-tab active" data-tab="twitch" onclick="switchSettingsTab('twitch')" role="tab" aria-selected="true" data-i18n="tabTwitch">Twitch &amp; Setup</button>
+            <button type="button" class="settings-tab" data-tab="items" onclick="switchSettingsTab('items')" role="tab" aria-selected="false" data-i18n="tabItems">Items</button>
+            <button type="button" class="settings-tab" data-tab="tiers" onclick="switchSettingsTab('tiers')" role="tab" aria-selected="false" data-i18n="tabTiers">Tiers &amp; Voting</button>
+            <button type="button" class="settings-tab" data-tab="design" onclick="switchSettingsTab('design')" role="tab" aria-selected="false" data-i18n="tabDesign">Design &amp; OBS</button>
+            <button type="button" class="settings-tab" data-tab="data" onclick="switchSettingsTab('data')" role="tab" aria-selected="false" data-i18n="tabBackup">Backup</button>
+        </nav>
+
+        <div class="settings-content">
+            <!-- TAB 1: TWITCH & SETUP -->
+            <div class="settings-tab-pane active" id="tab-twitch">
+                <div class="settings-section">
+                    <div class="section-title" data-i18n="secTwitch">Twitch Chat Connection</div>
+                    <div class="form-group">
+                        <label class="form-label" for="settingChannel" data-i18n="lblChannel">Channel Name</label>
+                        <input type="text" class="form-input" id="settingChannel" placeholder="your_channel_name" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="settingToken">
+                            <span data-i18n="lblToken">OAuth Token</span>
+                            <button type="button" class="token-help-btn" onclick="openTokenHelper()" data-i18n="btnTokenHelp">How to get token?</button>
+                        </label>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <input type="password" class="form-input" id="settingToken" placeholder="oauth token" style="flex:1;" autocomplete="off">
+                            <button type="button" class="btn-icon" onclick="toggleTokenVisibility()" title="Show/Hide token" aria-label="Show or hide token">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                        </div>
+                        <div class="form-hint" data-i18n="hintToken">Saved locally in OBS browser cache. Only chat:read scope is required.</div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="section-title" data-i18n="secStreamTiming">Stream, Timing &amp; Language</div>
+                    <div class="form-row-2 form-group">
+                        <div>
+                            <label class="form-label" for="settingTitle" data-i18n="lblTitle">Tierlist Title</label>
+                            <input type="text" class="form-input" id="settingTitle" value="TIERLIST">
+                        </div>
+                        <div>
+                            <label class="form-label" for="settingLanguage" data-i18n="lblLanguage">Language</label>
+                            <select class="form-input" id="settingLanguage" onchange="instantSaveSetting('language', this.value)">
+                                <option value="en">English</option>
+                                <option value="de">Deutsch</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label class="form-label" for="settingVoteDuration" data-i18n="lblVoteDuration">Voting Duration (sec)</label>
+                            <input type="number" class="form-input" id="settingVoteDuration" value="30" min="5" max="300">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="settingPauseDuration" data-i18n="lblPauseDuration">Pause Between (sec)</label>
+                            <input type="number" class="form-input" id="settingPauseDuration" value="30" min="0" max="300">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: ITEMS -->
+            <div class="settings-tab-pane" id="tab-items">
+                <div class="settings-section">
+                    <div class="section-title" data-i18n="secAddImages">Add Images (IndexedDB — unlimited storage)</div>
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">
+                            <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        </div>
+                        <div class="upload-text" data-i18n="uploadPrompt">Drag &amp; drop images here, or click to select files</div>
+                        <input type="file" id="fileInput" accept="image/*" multiple style="display: none;">
+                    </div>
+                    <div class="upload-table" id="uploadTable"></div>
+                </div>
+
+                <div class="settings-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div class="section-title" style="margin-bottom: 0;"><span data-i18n="secLoadedItems">Loaded Items</span> (<span id="itemCount">0</span>)</div>
+                        <div style="display: flex; gap: 6px;">
+                            <button type="button" class="btn-small" onclick="shuffleUnplacedItems()" data-i18n="btnShuffle">Shuffle Queue</button>
+                            <button type="button" class="btn-danger" id="clearAllItemsBtn" onclick="confirmAction(this, clearAllItems)" style="padding: 5px 10px; font-size: 12px;" data-i18n="btnClearAll">Clear All</button>
+                        </div>
+                    </div>
+                    <div class="items-toolbar">
+                        <input type="text" class="form-input" id="itemSearchInput" placeholder="Filter items..." oninput="renderSettingsItems()" style="padding: 7px 10px; font-size: 13px;">
+                    </div>
+                    <div class="item-list" id="itemsList"></div>
+                </div>
+            </div>
+
+            <!-- TAB 3: TIERS & VOTING -->
+            <div class="settings-tab-pane" id="tab-tiers">
+                <div class="settings-section">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <div class="section-title" style="margin-bottom:0;" data-i18n="secTiers">Tiers &amp; Chat Commands</div>
+                        <button type="button" class="btn-small" onclick="resetTierColors()" data-i18n="btnResetColors">Reset Colors</button>
+                    </div>
+                    <div id="tiersList"></div>
+                    <div class="add-tier-form">
+                        <input type="text" class="form-input" id="newTierKey" placeholder="Key (S)" maxlength="3" style="flex: 0 0 100px;">
+                        <input type="text" class="form-input" id="newTierName" placeholder="Tier Name" style="flex: 1;">
+                        <button type="button" class="btn-add" onclick="addTier()" data-i18n="btnAddTier">+ Add</button>
+                    </div>
+                    <div class="form-hint" data-i18n="hintTiers">Enter "S" and !S is added automatically. Viewers vote in chat with !S.</div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="section-title" data-i18n="secChatBehavior">Chat &amp; Moderation</div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="allowTextAfterCmdCheckbox" checked onchange="instantSaveSetting('allowTextAfterCmd', this.checked)">
+                            <div>
+                                <div class="checkbox-title" data-i18n="chkTextAfterCmd">Allow text after command</div>
+                                <div class="checkbox-desc" data-i18n="chkTextAfterCmdDesc">Counts "!S great game" as a valid !S vote.</div>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="modCommandsCheckbox" checked onchange="instantSaveSetting('modCommands', this.checked)">
+                            <div>
+                                <div class="checkbox-title" data-i18n="chkModCmd">Enable Broadcaster &amp; Mod chat commands</div>
+                                <div class="checkbox-desc" data-i18n="chkModCmdDesc">Allows !tl start, !tl pause, !tl next, !tl skip in Twitch chat.</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="section-title" data-i18n="secVotingCalc">Voting Calculation</div>
+                    <div class="form-group">
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="votingMode" value="absolute" checked onchange="instantSaveSetting('votingMode', 'absolute')">
+                                <div class="radio-label">
+                                    <div data-i18n="modeAbsolute">Absolute Mode</div>
+                                    <div class="radio-desc" data-i18n="modeAbsoluteDesc">Tier with the most votes wins</div>
+                                </div>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="votingMode" value="average" onchange="instantSaveSetting('votingMode', 'average')">
+                                <div class="radio-label">
+                                    <div data-i18n="modeAverage">Weighted Average Mode</div>
+                                    <div class="radio-desc" data-i18n="modeAverageDesc">Placed by weighted average score across all votes</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="autoSortCheckbox" checked onchange="instantSaveSetting('autoSort', this.checked)">
+                            <div>
+                                <div class="checkbox-title" data-i18n="chkAutoSort">Auto-sort by score within tier</div>
+                                <div class="checkbox-desc" data-i18n="chkAutoSortDesc">Sorts items left-to-right by score in Average Mode.</div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="lblTieBreaker">Tie-Breaker (exact averages)</label>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="tieBreaker" value="round_up" checked onchange="instantSaveSetting('tieBreaker', 'round_up')">
+                                <div class="radio-label">
+                                    <div data-i18n="tieUp">Round Up</div>
+                                    <div class="radio-desc" data-i18n="tieUpDesc">4.5 → Higher tier</div>
+                                </div>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="tieBreaker" value="round_down" onchange="instantSaveSetting('tieBreaker', 'round_down')">
+                                <div class="radio-label">
+                                    <div data-i18n="tieDown">Round Down</div>
+                                    <div class="radio-desc" data-i18n="tieDownDesc">4.5 → Lower tier</div>
+                                </div>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="tieBreaker" value="most_votes" onchange="instantSaveSetting('tieBreaker', 'most_votes')">
+                                <div class="radio-label">
+                                    <div data-i18n="tieMost">Most Votes</div>
+                                    <div class="radio-desc" data-i18n="tieMostDesc">Use absolute vote count as tie-breaker</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="section-title" data-i18n="secCriteria">Rating Criteria (Pause Screen)</div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="criteriaEnabledCheckbox" checked onchange="instantSaveSetting('criteriaEnabled', this.checked)">
+                            <div>
+                                <div class="checkbox-title" data-i18n="chkCriteria">Show criteria during pause</div>
+                                <div class="checkbox-desc" data-i18n="chkCriteriaDesc">Displays rating guidelines before each voting round.</div>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="criteria-list" id="criteriaList"></div>
+                    <button type="button" class="add-criterion-btn" id="addCriterionBtn" onclick="addCriterion()" data-i18n="btnAddCriterion">+ Add Criterion</button>
+                    <div class="criteria-counter" id="criteriaCounter">0/7</div>
+                </div>
+            </div>
+
+            <!-- TAB 4: DESIGN & OBS -->
+            <div class="settings-tab-pane" id="tab-design">
+                <div class="settings-section">
+                    <div class="section-title" data-i18n="secTiles">Item Tiles</div>
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="lblTileSize">Tile Size</label>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="itemSize" value="90" checked onchange="instantSaveSetting('itemSize', 90)">
+                                <div class="radio-label">
+                                    <div>90 × 90 px</div>
+                                    <div class="radio-desc" data-i18n="size90Desc">Recommended for up to 50 items</div>
+                                </div>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="itemSize" value="75" onchange="instantSaveSetting('itemSize', 75)">
+                                <div class="radio-label">
+                                    <div>75 × 75 px</div>
+                                    <div class="radio-desc" data-i18n="size75Desc">Compact layout for 50–100+ items</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="lblDisplay">Label Display</label>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="labelMode" value="labels" checked onchange="instantSaveSetting('showLabels', true)">
+                                <div class="radio-label">
+                                    <div data-i18n="lblShowLabels">Show Labels</div>
+                                    <div class="radio-desc" data-i18n="lblShowLabelsDesc">Display item names below images</div>
+                                </div>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="labelMode" value="icons" onchange="instantSaveSetting('showLabels', false)">
+                                <div class="radio-label">
+                                    <div data-i18n="lblIconsOnly">Icons Only</div>
+                                    <div class="radio-desc" data-i18n="lblIconsOnlyDesc">Hide text labels for full-bleed images</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="section-title" data-i18n="secOverlay">OBS Overlay, Audio &amp; Theme</div>
+                    <div class="form-group">
+                        <label class="form-label" for="bgOpacitySlider" data-i18n="lblBgOpacity">Background Opacity</label>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <input type="range" class="slider-input" id="bgOpacitySlider" min="0" max="100" value="100" oninput="applyAppearance()">
+                            <span id="bgOpacityValue" style="font-family: var(--font-display); font-size: 16px; font-weight: 600; min-width: 44px; text-align: right;">100%</span>
+                        </div>
+                        <div class="form-hint" data-i18n="hintBgOpacity">Set to 0% for transparent OBS overlay over your stream scene.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="accentHueSlider" data-i18n="lblAccent">Accent Color</label>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <input type="range" class="slider-input" id="accentHueSlider" min="0" max="360" value="40"
+                                style="background: linear-gradient(to right, #9e4b52, #b87c44, #c29b50, #7c9468, #5d9484, #637fa0, #8a6c94, #9e4b52);"
+                                oninput="applyAppearance()">
+                            <div id="accentPreview" style="width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border-strong); flex-shrink: 0;"></div>
+                        </div>
+                        <div class="swatch-row">
+                            <button type="button" class="swatch-btn" style="background:#c29b50;" onclick="setAccentPreset(40, 48, 54)" title="Antique Gold"></button>
+                            <button type="button" class="swatch-btn" style="background:#cab896;" onclick="setAccentPreset(38, 36, 68)" title="Warm Cream"></button>
+                            <button type="button" class="swatch-btn" style="background:#ba6d4e;" onclick="setAccentPreset(18, 45, 52)" title="Smoked Copper"></button>
+                            <button type="button" class="swatch-btn" style="background:#b34250;" onclick="setAccentPreset(352, 46, 48)" title="Vintage Crimson"></button>
+                            <button type="button" class="swatch-btn" style="background:#5d987a;" onclick="setAccentPreset(150, 24, 48)" title="Muted Sage"></button>
+                            <button type="button" class="swatch-btn" style="background:#6f8cad;" onclick="setAccentPreset(212, 28, 56)" title="Slate Steel"></button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="showChatGuideCheckbox" onchange="instantSaveSetting('showChatGuide', this.checked)">
+                            <div>
+                                <div class="checkbox-title" data-i18n="chkChatGuide">Show "Chat Space (520×520)" alignment label</div>
+                                <div class="checkbox-desc" data-i18n="chkChatGuideDesc">Turn off once your OBS chat overlay is positioned.</div>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="showVoteTickerCheckbox" checked onchange="instantSaveSetting('showVoteTicker', this.checked)">
+                            <div>
+                                <div class="checkbox-title" data-i18n="chkTicker">Show live vote ticker</div>
+                                <div class="checkbox-desc" data-i18n="chkTickerDesc">Displays recent chat votes briefly in the chart corner.</div>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="soundEnabledCheckbox" onchange="instantSaveSetting('soundEnabled', this.checked)">
+                            <div>
+                                <div class="checkbox-title" data-i18n="chkSound">Enable subtle audio cues</div>
+                                <div class="checkbox-desc" data-i18n="chkSoundDesc">Plays a soft tick in the last 3 seconds and on completion.</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 5: BACKUP & RESET -->
+            <div class="settings-tab-pane" id="tab-data">
+                <div class="settings-section">
+                    <div class="section-title" data-i18n="secBackup">Backup &amp; Restore</div>
+                    <div class="info-callout" data-i18n="backupTip">
+                        <strong>Tip:</strong> Export your tierlist regularly so you can restore items, images, placements, and settings anytime.
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <button type="button" class="btn-secondary" onclick="exportProgress()">
+                            <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            <span data-i18n="btnExport">Export JSON</span>
+                        </button>
+                        <button type="button" class="btn-secondary" onclick="document.getElementById('importFile').click()">
+                            <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            <span data-i18n="btnImport">Import JSON</span>
+                        </button>
+                    </div>
+                    <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importProgress(this.files[0])">
+                </div>
+
+                <div class="settings-section">
+                    <div class="section-title" data-i18n="secReset">Reset Actions</div>
+                    <div class="form-group">
+                        <button type="button" class="btn-secondary" onclick="confirmAction(this, restartPlacements)" style="width: 100%;">
+                            <svg class="icon" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                            <span data-i18n="btnRestart">Restart Placements</span>
+                        </button>
+                        <div class="form-hint" data-i18n="hintRestart">Moves all items back to unplaced. Items, tiers, and Twitch settings are kept.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <button type="button" class="btn-danger" onclick="confirmAction(this, resetAllTiersAndItems)" style="width: 100%;">
+                            <svg class="icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            <span data-i18n="btnResetAll">Reset All Tiers &amp; Items</span>
+                        </button>
+                        <div class="form-hint" data-i18n="hintResetAll">Restores default tiers (!S–!L) and deletes all items. Keeps your Twitch credentials.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <button type="button" class="btn-danger" onclick="confirmAction(this, clearBrowserCache)" style="width: 100%;">
+                            <span data-i18n="btnClearCache">Force Clear Browser Cache &amp; Reload</span>
+                        </button>
+                        <div class="form-hint" data-i18n="hintClearCache">Clears all local storage &amp; IndexedDB (keeps Twitch credentials) and reloads.</div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="section-title">About</div>
+                    <div class="info-callout" style="margin-bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 238 116" fill="currentColor" style="width: 28px; height: 14px; color: var(--accent); flex-shrink: 0;">
+                                <polygon points="181.0,0.0 201.0,0.0 202.0,1.0 212.0,3.0 223.0,9.0 232.0,18.0 237.0,27.0 219.0,36.0 217.0,36.0 215.0,32.0 209.0,26.0 197.0,21.0 184.0,21.0 177.0,24.0 173.0,29.0 173.0,36.0 178.0,41.0 185.0,44.0 188.0,44.0 193.0,46.0 197.0,46.0 198.0,47.0 209.0,49.0 223.0,55.0 227.0,58.0 232.0,64.0 236.0,74.0 236.0,85.0 235.0,86.0 234.0,93.0 230.0,100.0 220.0,109.0 210.0,113.0 202.0,114.0 201.0,115.0 186.0,115.0 185.0,114.0 175.0,113.0 174.0,112.0 166.0,110.0 153.0,103.0 145.0,96.0 144.0,96.0 130.0,83.0 130.0,82.0 90.0,39.0 68.0,64.0 68.0,65.0 59.0,73.0 54.0,72.0 25.0,39.0 23.0,41.0 23.0,45.0 22.0,46.0 22.0,63.0 23.0,64.0 24.0,71.0 31.0,83.0 35.0,87.0 44.0,92.0 51.0,93.0 52.0,94.0 60.0,94.0 61.0,93.0 65.0,93.0 73.0,90.0 82.0,84.0 95.0,71.0 95.0,70.0 102.0,62.0 116.0,78.0 112.0,84.0 96.0,100.0 86.0,107.0 75.0,112.0 69.0,113.0 68.0,114.0 64.0,114.0 63.0,115.0 48.0,115.0 47.0,114.0 38.0,113.0 27.0,108.0 19.0,102.0 11.0,93.0 5.0,82.0 5.0,80.0 2.0,73.0 2.0,70.0 1.0,69.0 1.0,64.0 0.0,63.0 0.0,44.0 1.0,43.0 1.0,38.0 2.0,37.0 3.0,29.0 5.0,25.0 5.0,22.0 7.0,18.0 7.0,15.0 8.0,14.0 11.0,3.0 23.0,3.0 31.0,11.0 31.0,12.0 36.0,17.0 36.0,18.0 41.0,23.0 41.0,24.0 46.0,29.0 46.0,30.0 57.0,43.0 63.0,37.0 63.0,36.0 79.0,18.0 79.0,17.0 86.0,10.0 86.0,9.0 88.0,7.0 91.0,7.0 100.0,16.0 100.0,17.0 115.0,33.0 115.0,34.0 129.0,49.0 129.0,50.0 141.0,62.0 141.0,63.0 161.0,82.0 168.0,87.0 176.0,91.0 178.0,91.0 182.0,93.0 187.0,93.0 188.0,94.0 197.0,94.0 198.0,93.0 202.0,93.0 207.0,91.0 212.0,86.0 212.0,84.0 213.0,83.0 213.0,78.0 208.0,72.0 199.0,68.0 196.0,68.0 195.0,67.0 192.0,67.0 191.0,66.0 176.0,63.0 162.0,57.0 155.0,50.0 152.0,44.0 152.0,42.0 150.0,40.0 141.0,50.0 139.0,50.0 126.0,35.0 143.0,18.0 151.0,12.0 166.0,4.0 168.0,4.0 172.0,2.0 175.0,2.0 176.0,1.0 180.0,1.0" />
+                            </svg>
+                            <div>
+                                <div style="font-weight: 600; color: var(--text-primary);">Mellow Solutions</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">Twitch Tierlist Maker v2.5.0</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                            <a href="https://github.com/Mello2110" target="_blank" rel="noopener" class="btn-small" style="text-decoration: none;">GitHub</a>
+                            <a href="https://buymeacoffee.com/mellowsolutions" target="_blank" rel="noopener" class="btn-small" style="text-decoration: none;">Buy Me a Coffee</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-footer">
+            <div class="settings-footer-meta">v2.5 • <span id="lastSaved">—</span></div>
+            <button type="button" class="btn-secondary" onclick="toggleSettings(false)" data-i18n="btnClose">Close</button>
+            <button type="button" class="btn-primary" onclick="saveSettings()" data-i18n="btnSaveConnect">Save &amp; Connect</button>
+        </div>
+    </aside>
+
+    <!-- Color Picker Modal -->
+    <div class="modal-backdrop" id="colorPickerModal" role="dialog" aria-modal="true">
+        <div class="modal-card">
+            <div class="modal-title" data-i18n="modalColorTitle">Tier Color</div>
+            <div class="swatch-row" style="margin-bottom: 16px;">
+                <button type="button" class="swatch-btn" style="background:#b38b34;" onclick="setPickerHex('#b38b34')" title="Antique Gold"></button>
+                <button type="button" class="swatch-btn" style="background:#c5ab76;" onclick="setPickerHex('#c5ab76')" title="Champagne"></button>
+                <button type="button" class="swatch-btn" style="background:#d6c7a9;" onclick="setPickerHex('#d6c7a9')" title="Warm Cream"></button>
+                <button type="button" class="swatch-btn" style="background:#a8706a;" onclick="setPickerHex('#a8706a')" title="Vintage Rose"></button>
+                <button type="button" class="swatch-btn" style="background:#8c3b42;" onclick="setPickerHex('#8c3b42')" title="Bordeaux"></button>
+                <button type="button" class="swatch-btn" style="background:#6e1a24;" onclick="setPickerHex('#6e1a24')" title="Crimson"></button>
+                <button type="button" class="swatch-btn" style="background:#5d7a6c;" onclick="setPickerHex('#5d7a6c')" title="Muted Sage"></button>
+                <button type="button" class="swatch-btn" style="background:#4b5563;" onclick="setPickerHex('#4b5563')" title="Slate"></button>
+            </div>
+            <div class="color-slider">
+                <div class="slider-label"><span>Hue</span><span id="hueValue">180°</span></div>
+                <input type="range" class="slider-input" id="hueSlider" min="0" max="360" value="180">
+            </div>
+            <div class="color-slider">
+                <div class="slider-label"><span>Saturation</span><span id="satValue">80%</span></div>
+                <input type="range" class="slider-input" id="satSlider" min="0" max="100" value="80">
+            </div>
+            <div class="color-slider">
+                <div class="slider-label"><span>Lightness</span><span id="lightValue">45%</span></div>
+                <input type="range" class="slider-input" id="lightSlider" min="0" max="100" value="45">
+            </div>
+            <div class="color-preview-large" id="colorPreview">#0a1a1f</div>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" style="flex:1;" onclick="closeColorPicker()" data-i18n="btnCancel">Cancel</button>
+                <button type="button" class="btn-primary" style="flex:1;" onclick="applyColor()" data-i18n="btnApply">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Token Helper Modal -->
+    <div class="modal-backdrop" id="tokenHelpModal" role="dialog" aria-modal="true">
+        <div class="modal-card">
+            <div class="modal-title" data-i18n="modalTokenTitle">How to get a Twitch OAuth Token</div>
+            <div class="token-help-steps" id="tokenHelpSteps"></div>
+            <button type="button" class="btn-primary" onclick="closeTokenHelper()" style="width: 100%; margin-top: 16px;" data-i18n="btnClose">Close</button>
+        </div>
+    </div>
+
+    <!-- Pause Overlay (Scoped to Left 1400px) -->
+    <div class="pause-overlay" id="pauseOverlay">
+        <div class="pause-content">
+            <img class="pause-preview-image" id="pausePreviewImage" src="" alt="" style="display: none;">
+            <div class="pause-preview-name" id="pausePreviewName">—</div>
+            <div class="pause-criteria" id="pauseCriteria" style="display: none;">
+                <div class="pause-criteria-title" data-i18n="rateBy">Rate By</div>
+                <div id="pauseCriteriaContent"></div>
+            </div>
+            <div class="pause-title" data-i18n="nextVotingIn">Next Voting In</div>
+            <div class="pause-timer" id="pauseTimer">30</div>
+            <button type="button" class="pause-skip" onclick="skipPause()" data-i18n="btnStartNow">Start Now</button>
+        </div>
+    </div>
+
+    <!-- Main 1920x1080 Broadcast Layout -->
+    <div class="container">
+        <header class="unified-header">
+            <div class="header-left">
+                <div class="title" id="tierlistTitle">TIERLIST</div>
+            </div>
+            <div class="header-right">
+                <button type="button" class="connection-pill disconnected" id="connectionPill" onclick="openTwitchSettings()" title="Configure Twitch">
+                    <span class="connection-dot"></span>
+                    <span id="connectionText">Disconnected</span>
+                </button>
+                <div class="timer-wrapper">
+                    <span class="timer-label" data-i18n="lblTime">Time</span>
+                    <div class="timer-display" id="timer">30</div>
+                    <button type="button" class="header-icon-btn" id="pauseBtn" onclick="togglePause()" title="Pause/Resume (Space)" aria-label="Pause or resume voting" disabled>
+                        <svg class="icon icon-sm" id="pauseBtnIcon" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                    </button>
+                    <button type="button" class="header-icon-btn" onclick="toggleSettings(true)" title="Settings" aria-label="Open settings">
+                        <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+                    </button>
+                    <div class="mode-toggle" title="Allow multiple votes per user">
+                        <span class="toggle-label">Multi</span>
+                        <button type="button" class="toggle-switch" id="toggleSwitch" onclick="toggleVoteMode()" aria-label="Toggle multi-vote" aria-pressed="false">
+                            <span class="toggle-slider"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="tierlist-section">
+            <div class="tiers-container" id="tiersContainer"></div>
+
+            <div class="unplaced-section">
+                <div class="unplaced-header">
+                    <div class="unplaced-label" data-i18n="unplacedItems">Unplaced Items</div>
+                    <div class="progress-bar-container">
+                        <div class="progress-info" id="progressInfo">0/0</div>
+                        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+                    </div>
+                </div>
+                <div class="unplaced-items" id="unplacedItems"></div>
+                <div class="hotkeys">
+                    <span class="hotkey"><kbd class="hotkey-key">N</kbd> <span data-i18n="hkNext">Next</span></span>
+                    <span class="hotkey"><kbd class="hotkey-key">U</kbd> <span data-i18n="hkUndo">Undo</span></span>
+                    <span class="hotkey"><kbd class="hotkey-key">Space</kbd> <span data-i18n="hkPause">Pause</span></span>
+                    <span class="hotkey"><kbd class="hotkey-key">Esc</kbd> <span data-i18n="hkClose">Close Menu</span></span>
+                </div>
+            </div>
+        </main>
+
+        <aside class="voting-section">
+            <div class="voting-container">
+                <div class="item-preview">
+                    <img class="preview-image" id="previewImage" src="" alt="" style="display: none;">
+                    <div class="preview-placeholder" id="previewPlaceholder">
+                        <svg class="icon icon-lg" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    </div>
+                    <div class="preview-name" id="previewName">No items loaded</div>
+                    <button type="button" class="preview-action-btn" id="previewAddBtn" onclick="openItemsSettings()" style="display: none;" data-i18n="btnAddItems">+ Add Items</button>
+                </div>
+
+                <div class="chart-container">
+                    <div class="vote-ticker" id="voteTicker"></div>
+                    <div class="chart-wrapper"><canvas id="votingChart"></canvas></div>
+                </div>
+
+                <div class="stats-section">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="totalVotes">0</div>
+                            <div class="stat-label" data-i18n="statTotal">Total</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="uniqueVoters">0</div>
+                            <div class="stat-label" data-i18n="statVoters">Voters</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="leader">—</div>
+                            <div class="stat-label" data-i18n="statLeader">Leader</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button type="button" class="btn btn-start" id="startBtn" onclick="startVoting()" data-i18n="btnStartVoting">Start Voting</button>
+                    <button type="button" class="btn btn-reset" onclick="resetVoting()" data-i18n="btnReset">Reset</button>
+                </div>
+            </div>
+
+            <div class="control-panel" id="controlPanel"></div>
+
+            <div class="chat-space hidden-guide" id="chatSpace">
+                <div class="chat-placeholder">Chat Space (520×520)</div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Scoped Overlays (left 1400px) -->
+    <div class="end-overlay" id="endOverlay"><div class="end-message" id="endMessage"></div></div>
+    <div class="skip-overlay" id="skipOverlay">
+        <div class="skip-message">
+            <div class="skip-title" data-i18n="skipTitle">Skipped</div>
+            <div class="skip-subtitle" data-i18n="skipSubtitle">No votes received — moved to end of queue</div>
+        </div>
+    </div>
+    <div class="final-overlay" id="finalOverlay">
+        <div class="final-message">
+            <div class="final-title" data-i18n="finalTitle">Tierlist Complete</div>
+            <div class="final-subtitle" data-i18n="finalSubtitle">All items have been ranked</div>
+            <div class="final-stats" id="finalStats">0/0</div>
+            <div class="final-actions">
+                <button type="button" class="btn-primary" onclick="closeFinalScreen()" data-i18n="btnViewTierlist">View Tierlist</button>
+                <button type="button" class="btn-secondary" onclick="restartPlacements()" data-i18n="btnRestart">Restart Placements</button>
+                <button type="button" class="btn-danger" onclick="confirmAction(this, resetAll)" data-i18n="btnReset">Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script>
+        // ==========================================
+        // I18N (EN default, DE supported)
+        // ==========================================
+        const I18N = {
+            en: {
+                settingsTitle: "Settings",
+                tabTwitch: "Twitch & Setup", tabItems: "Items", tabTiers: "Tiers & Voting", tabDesign: "Design & OBS", tabBackup: "Backup",
+                secTwitch: "Twitch Chat Connection", lblChannel: "Channel Name", lblToken: "OAuth Token", btnTokenHelp: "How to get token?",
+                hintToken: "Saved locally in OBS browser cache. Only chat:read scope is required.",
+                secStreamTiming: "Stream, Timing & Language", lblTitle: "Tierlist Title", lblLanguage: "Language",
+                lblVoteDuration: "Voting Duration (sec)", lblPauseDuration: "Pause Between (sec)",
+                secAddImages: "Add Images (IndexedDB — unlimited storage)",
+                uploadPrompt: "Drag & drop images here, or click to select files",
+                secLoadedItems: "Loaded Items", btnShuffle: "Shuffle Queue", btnClearAll: "Clear All",
+                secTiers: "Tiers & Chat Commands", btnResetColors: "Reset Colors", btnAddTier: "+ Add",
+                hintTiers: 'Enter "S" and !S is added automatically. Viewers vote in chat with !S.',
+                secChatBehavior: "Chat & Moderation",
+                chkTextAfterCmd: "Allow text after command", chkTextAfterCmdDesc: 'Counts "!S great game" as a valid !S vote.',
+                chkModCmd: "Enable Broadcaster & Mod chat commands", chkModCmdDesc: "Allows !tl start, !tl pause, !tl next, !tl skip in Twitch chat.",
+                secVotingCalc: "Voting Calculation", modeAbsolute: "Absolute Mode", modeAbsoluteDesc: "Tier with the most votes wins",
+                modeAverage: "Weighted Average Mode", modeAverageDesc: "Placed by weighted average score across all votes",
+                chkAutoSort: "Auto-sort by score within tier", chkAutoSortDesc: "Sorts items left-to-right by score in Average Mode.",
+                lblTieBreaker: "Tie-Breaker (exact averages)", tieUp: "Round Up", tieUpDesc: "4.5 → Higher tier",
+                tieDown: "Round Down", tieDownDesc: "4.5 → Lower tier", tieMost: "Most Votes", tieMostDesc: "Use absolute vote count as tie-breaker",
+                secCriteria: "Rating Criteria (Pause Screen)", chkCriteria: "Show criteria during pause",
+                chkCriteriaDesc: "Displays rating guidelines before each voting round.", btnAddCriterion: "+ Add Criterion",
+                secTiles: "Item Tiles", lblTileSize: "Tile Size",
+                size90Desc: "Recommended for up to 50 items", size75Desc: "Compact layout for 50–100+ items",
+                lblDisplay: "Label Display", lblShowLabels: "Show Labels", lblShowLabelsDesc: "Display item names below images",
+                lblIconsOnly: "Icons Only", lblIconsOnlyDesc: "Hide text labels for full-bleed images",
+                secOverlay: "OBS Overlay, Audio & Theme", lblBgOpacity: "Background Opacity",
+                hintBgOpacity: "Set to 0% for transparent OBS overlay over your stream scene.", lblAccent: "Accent Color",
+                chkChatGuide: 'Show "Chat Space (520×520)" alignment label', chkChatGuideDesc: "Turn off once your OBS chat overlay is positioned.",
+                chkTicker: "Show live vote ticker", chkTickerDesc: "Displays recent chat votes briefly in the chart corner.",
+                chkSound: "Enable subtle audio cues", chkSoundDesc: "Plays a soft tick in the last 3 seconds and on completion.",
+                secBackup: "Backup & Restore",
+                backupTip: "<strong>Tip:</strong> Export your tierlist regularly so you can restore items, images, placements, and settings anytime.",
+                btnExport: "Export JSON", btnImport: "Import JSON", secReset: "Reset Actions",
+                btnRestart: "Restart Placements", hintRestart: "Moves all items back to unplaced. Items, tiers, and Twitch settings are kept.",
+                btnResetAll: "Reset All Tiers & Items", hintResetAll: "Restores default tiers (!S–!L) and deletes all items. Keeps your Twitch credentials.",
+                btnClearCache: "Force Clear Browser Cache & Reload", hintClearCache: "Clears local storage & IndexedDB (keeps Twitch credentials) and reloads.",
+                btnClose: "Close", btnSaveConnect: "Save & Connect", modalColorTitle: "Tier Color",
+                btnCancel: "Cancel", btnApply: "Apply", modalTokenTitle: "How to get a Twitch OAuth Token",
+                rateBy: "Rate By", nextVotingIn: "Next Voting In", btnStartNow: "Start Now",
+                lblTime: "Time", unplacedItems: "Unplaced Items",
+                hkNext: "Next", hkUndo: "Undo", hkPause: "Pause", hkClose: "Close Menu",
+                btnAddItems: "+ Add Items", statTotal: "Total", statVoters: "Voters", statLeader: "Leader",
+                btnStartVoting: "Start Voting", btnReset: "Reset",
+                skipTitle: "Skipped", skipSubtitle: "No votes received — moved to end of queue",
+                finalTitle: "Tierlist Complete", finalSubtitle: "All items have been ranked", btnViewTierlist: "View Tierlist",
+                noItemsLoaded: "No items loaded", allRanked: "All items ranked",
+                emptyUnplaced: "No items in this tierlist yet.", uploadInSettings: "Upload Images in Settings",
+                allPlaced: "All items have been placed.", filterPlaceholder: "Filter items...",
+                connNone: "Not configured", connConnecting: "Connecting…", connReconnecting: "Reconnecting…",
+                connAuthFail: "Auth failed", connDisconnected: "Disconnected", connError: "Error",
+                tokenSteps: `<ol><li>Visit <a href="https://twitchtokengenerator.com/" target="_blank" rel="noopener">twitchtokengenerator.com</a></li><li>Select <strong>Custom Scope Token</strong></li><li>Enable only <code>chat:read</code></li><li>Click <strong>Generate Token</strong> and authorize with Twitch</li><li>Copy the <strong>Access Token</strong> and paste it into the OAuth field</li></ol><p style="color:var(--text-muted);font-size:12px;">The <code>oauth:</code> prefix is handled automatically.</p>`
+            },
+            de: {
+                settingsTitle: "Einstellungen",
+                tabTwitch: "Twitch & Setup", tabItems: "Items", tabTiers: "Tiers & Voting", tabDesign: "Design & OBS", tabBackup: "Backup",
+                secTwitch: "Twitch-Chat-Verbindung", lblChannel: "Kanalname", lblToken: "OAuth-Token", btnTokenHelp: "Token erhalten?",
+                hintToken: "Lokal im OBS-Browsercache gespeichert. Nur chat:read erforderlich.",
+                secStreamTiming: "Stream, Timing & Sprache", lblTitle: "Tierlist-Titel", lblLanguage: "Sprache",
+                lblVoteDuration: "Voting-Dauer (Sek.)", lblPauseDuration: "Pause dazwischen (Sek.)",
+                secAddImages: "Bilder hinzufügen (IndexedDB — unbegrenzter Speicher)",
+                uploadPrompt: "Bilder hierher ziehen oder klicken zum Auswählen",
+                secLoadedItems: "Geladene Items", btnShuffle: "Mischen", btnClearAll: "Alle löschen",
+                secTiers: "Tiers & Chat-Befehle", btnResetColors: "Farben zurücksetzen", btnAddTier: "+ Neu",
+                hintTiers: 'Gib "S" ein — !S wird automatisch ergänzt. Der Chat stimmt mit !S ab.',
+                secChatBehavior: "Chat & Moderation",
+                chkTextAfterCmd: "Text nach Befehl erlauben", chkTextAfterCmdDesc: 'Zählt "!S super Spiel" als gültige !S-Stimme.',
+                chkModCmd: "Broadcaster- & Mod-Befehle im Chat", chkModCmdDesc: "Erlaubt !tl start, !tl pause, !tl next, !tl skip im Twitch-Chat.",
+                secVotingCalc: "Voting-Berechnung", modeAbsolute: "Absolut-Modus", modeAbsoluteDesc: "Tier mit den meisten Stimmen gewinnt",
+                modeAverage: "Gewichteter Durchschnitt", modeAverageDesc: "Platzierung nach Durchschnittspunktzahl",
+                chkAutoSort: "Innerhalb des Tiers nach Score sortieren", chkAutoSortDesc: "Sortiert Items im Durchschnitts-Modus von links nach rechts.",
+                lblTieBreaker: "Tie-Breaker (bei exaktem Gleichstand)", tieUp: "Aufrunden", tieUpDesc: "4.5 → Höheres Tier",
+                tieDown: "Abrunden", tieDownDesc: "4.5 → Niedrigeres Tier", tieMost: "Meiste Stimmen", tieMostDesc: "Absolute Stimmenzahl entscheidet",
+                secCriteria: "Bewertungskriterien (Pausen-Screen)", chkCriteria: "Kriterien während der Pause anzeigen",
+                chkCriteriaDesc: "Zeigt Bewertungs-Richtlinien vor jeder Abstimmung.", btnAddCriterion: "+ Kriterium hinzufügen",
+                secTiles: "Item-Kacheln", lblTileSize: "Kachelgröße",
+                size90Desc: "Empfohlen für bis zu 50 Items", size75Desc: "Kompakt für 50–100+ Items",
+                lblDisplay: "Beschriftung", lblShowLabels: "Namen anzeigen", lblShowLabelsDesc: "Item-Namen unter den Bildern anzeigen",
+                lblIconsOnly: "Nur Bilder", lblIconsOnlyDesc: "Keine Text-Labels, vollflächige Bilder",
+                secOverlay: "OBS-Overlay, Audio & Design", lblBgOpacity: "Hintergrund-Deckkraft",
+                hintBgOpacity: "Auf 0 % stellen für transparentes OBS-Overlay.", lblAccent: "Akzentfarbe",
+                chkChatGuide: '"Chat Space (520×520)"-Hilfsrahmen anzeigen', chkChatGuideDesc: "Ausschalten, sobald der OBS-Chat positioniert ist.",
+                chkTicker: "Live-Vote-Ticker anzeigen", chkTickerDesc: "Zeigt eingehende Chat-Votes kurz oben rechts im Chart.",
+                chkSound: "Dezente Audio-Signale", chkSoundDesc: "Leiser Ton in den letzten 3 Sekunden und bei Abschluss.",
+                secBackup: "Backup & Wiederherstellung",
+                backupTip: "<strong>Tipp:</strong> Exportiere deine Tierlist regelmäßig, um Items, Bilder, Platzierungen und Einstellungen jederzeit wiederherzustellen.",
+                btnExport: "JSON exportieren", btnImport: "JSON importieren", secReset: "Zurücksetzen",
+                btnRestart: "Platzierungen zurücksetzen", hintRestart: "Setzt alle Items zurück. Items, Tiers und Twitch-Daten bleiben erhalten.",
+                btnResetAll: "Alle Tiers & Items zurücksetzen", hintResetAll: "Stellt Standard-Tiers (!S–!L) wieder her und löscht alle Items. Twitch-Daten bleiben.",
+                btnClearCache: "Browser-Cache komplett leeren & neu laden", hintClearCache: "Löscht LocalStorage & IndexedDB (Twitch-Daten bleiben) und lädt neu.",
+                btnClose: "Schließen", btnSaveConnect: "Speichern & Verbinden", modalColorTitle: "Tier-Farbe",
+                btnCancel: "Abbrechen", btnApply: "Übernehmen", modalTokenTitle: "Twitch OAuth-Token erstellen",
+                rateBy: "Bewerten nach", nextVotingIn: "Nächstes Voting in", btnStartNow: "Jetzt starten",
+                lblTime: "Zeit", unplacedItems: "Unplatzierte Items",
+                hkNext: "Weiter", hkUndo: "Rückgängig", hkPause: "Pause", hkClose: "Menü schließen",
+                btnAddItems: "+ Items hinzufügen", statTotal: "Gesamt", statVoters: "Voter", statLeader: "Führend",
+                btnStartVoting: "Voting starten", btnReset: "Reset",
+                skipTitle: "Übersprungen", skipSubtitle: "Keine Stimmen — ans Ende der Warteschlange verschoben",
+                finalTitle: "Tierlist fertig", finalSubtitle: "Alle Items wurden bewertet", btnViewTierlist: "Tierlist ansehen",
+                noItemsLoaded: "Keine Items geladen", allRanked: "Alle Items bewertet",
+                emptyUnplaced: "Noch keine Items in dieser Tierlist.", uploadInSettings: "Bilder in den Einstellungen hochladen",
+                allPlaced: "Alle Items wurden platziert.", filterPlaceholder: "Items filtern...",
+                connNone: "Nicht konfiguriert", connConnecting: "Verbinde…", connReconnecting: "Verbinde neu…",
+                connAuthFail: "Login fehlgeschlagen", connDisconnected: "Getrennt", connError: "Fehler",
+                tokenSteps: `<ol><li>Öffne <a href="https://twitchtokengenerator.com/" target="_blank" rel="noopener">twitchtokengenerator.com</a></li><li>Wähle <strong>Custom Scope Token</strong></li><li>Aktiviere nur <code>chat:read</code></li><li>Klicke <strong>Generate Token</strong> und autorisiere mit Twitch</li><li>Kopiere den <strong>Access Token</strong> und füge ihn hier ein</li></ol><p style="color:var(--text-muted);font-size:12px;">Das <code>oauth:</code>-Präfix wird automatisch ergänzt.</p>`
+            }
+        };
+
+        function t(key) {
+            const lang = CONFIG.language === 'de' ? 'de' : 'en';
+            return I18N[lang][key] ?? I18N.en[key] ?? key;
+        }
+
+        function applyTranslations() {
+            document.documentElement.lang = CONFIG.language === 'de' ? 'de' : 'en';
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                const val = t(key);
+                if (key === 'backupTip') el.innerHTML = val;
+                else el.textContent = val;
+            });
+            document.getElementById('tokenHelpSteps').innerHTML = t('tokenSteps');
+            document.getElementById('itemSearchInput').placeholder = t('filterPlaceholder');
+        }
+
+        // ==========================================
+        // INDEXEDDB IMAGE STORE (Unlimited Local Storage)
+        // ==========================================
+        const imageCache = new Map();
+        const DB_NAME = 'TierlistProImages';
+        const STORE_NAME = 'images';
+
+        function openImageDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, 1);
+                req.onupgradeneeded = () => {
+                    const db = req.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function dbPutImage(id, dataUrl) {
+            imageCache.set(id, dataUrl);
+            try {
+                const db = await openImageDB();
+                await new Promise((res, rej) => {
+                    const tx = db.transaction(STORE_NAME, 'readwrite');
+                    tx.objectStore(STORE_NAME).put(dataUrl, id);
+                    tx.oncomplete = res;
+                    tx.onerror = () => rej(tx.error);
+                });
+            } catch {}
+        }
+
+        async function dbDeleteImage(id) {
+            imageCache.delete(id);
+            try {
+                const db = await openImageDB();
+                await new Promise((res) => {
+                    const tx = db.transaction(STORE_NAME, 'readwrite');
+                    tx.objectStore(STORE_NAME).delete(id);
+                    tx.oncomplete = res;
+                    tx.onerror = res;
+                });
+            } catch {}
+        }
+
+        async function dbClearImages() {
+            imageCache.clear();
+            try {
+                const db = await openImageDB();
+                await new Promise((res) => {
+                    const tx = db.transaction(STORE_NAME, 'readwrite');
+                    tx.objectStore(STORE_NAME).clear();
+                    tx.oncomplete = res;
+                    tx.onerror = res;
+                });
+            } catch {}
+        }
+
+        async function dbLoadAllImages() {
+            try {
+                const db = await openImageDB();
+                await new Promise((res) => {
+                    const tx = db.transaction(STORE_NAME, 'readonly');
+                    const store = tx.objectStore(STORE_NAME);
+                    const cursorReq = store.openCursor();
+                    cursorReq.onsuccess = (e) => {
+                        const cursor = e.target.result;
+                        if (cursor) {
+                            imageCache.set(cursor.key, cursor.value);
+                            cursor.continue();
+                        } else res();
+                    };
+                    cursorReq.onerror = res;
+                });
+            } catch {}
+        }
+
+        function getItemImage(item) {
+            if (!item) return '';
+            return imageCache.get(item.id) || item.image || '';
+        }
+
+        // ==========================================
+        // HELPERS & AUDIO
+        // ==========================================
+        function escapeHtml(str) {
+            return String(str ?? '')
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function getContrastTextColor(hex) {
+            const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '');
+            if (!m) return '#ffffff';
+            const lum = 0.2126 * (parseInt(m[1], 16) / 255) + 0.7152 * (parseInt(m[2], 16) / 255) + 0.0722 * (parseInt(m[3], 16) / 255);
+            return lum > 0.58 ? '#0f172a' : '#ffffff';
+        }
+
+        let audioCtx = null;
+        function playTone(freq, dur = 0.07, vol = 0.06) {
+            if (!CONFIG.soundEnabled) return;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + dur);
+            } catch {}
+        }
+
+        let toastTimer = null;
+        function showToast(message, duration = 2200) {
+            const toast = document.getElementById('toast');
+            if (!toast) return;
+            toast.textContent = message;
+            toast.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toast.classList.remove('show'), duration);
+        }
+
+        const confirmTimers = new WeakMap();
+        function confirmAction(btn, actionFn) {
+            if (!btn.dataset.confirming) {
+                btn.dataset.origHtml = btn.innerHTML;
+                btn.dataset.confirming = '1';
+                btn.classList.add('confirming');
+                btn.textContent = CONFIG.language === 'de' ? 'Erneut klicken zum Bestätigen' : 'Click again to confirm';
+                const timer = setTimeout(() => {
+                    if (btn.dataset.confirming) {
+                        btn.innerHTML = btn.dataset.origHtml;
+                        delete btn.dataset.confirming;
+                        btn.classList.remove('confirming');
+                    }
+                }, 3000);
+                confirmTimers.set(btn, timer);
+                return;
+            }
+            clearTimeout(confirmTimers.get(btn));
+            btn.innerHTML = btn.dataset.origHtml;
+            delete btn.dataset.confirming;
+            btn.classList.remove('confirming');
+            actionFn();
+        }
+
+        // ==========================================
+        // STATE & DEFAULT PALETTE (Gold -> Cream Beige -> Crimson)
+        // ==========================================
+        const APP_VERSION = "2.5.0";
+        const DEFAULT_TIER_COLORS = ["#b38b34", "#c5ab76", "#d6c7a9", "#a8706a", "#8c3b42", "#6e1a24"];
+        const OLD_V21_COLORS = ["#0a1a1f", "#0c2228", "#0e2a30", "#103238", "#123a40", "#00838f"];
+        const OLD_V23_COLORS = ["#e11d48", "#ea580c", "#d97706", "#0d9488", "#2563eb", "#64748b"];
+        const OLD_V24_COLORS = ["#b58924", "#9e6224", "#844b28", "#6b3b34", "#7a2932", "#69141e"];
+
+        let CONFIG = {
+            title: "TIERLIST",
+            language: "en",
+            channel: "",
+            token: "",
+            votingDuration: 30,
+            pauseDuration: 30,
+            itemSize: 90,
+            showLabels: true,
+            showChatGuide: false,
+            showVoteTicker: true,
+            soundEnabled: false,
+            allowTextAfterCmd: true,
+            modCommands: true,
+            votingMode: "absolute",
+            tieBreaker: "round_up",
+            autoSort: true,
+            criteria: { enabled: true, items: [] },
+            bgOpacity: 100,
+            accentHue: 40,
+            accentSat: 48,
+            accentLight: 54,
+            tiers: [
+                { key: "!S", name: "S", color: "#b38b34" },
+                { key: "!A", name: "A", color: "#c5ab76" },
+                { key: "!B", name: "B", color: "#d6c7a9" },
+                { key: "!C", name: "C", color: "#a8706a" },
+                { key: "!D", name: "D", color: "#8c3b42" },
+                { key: "!L", name: "L", color: "#6e1a24" }
+            ],
+            items: []
+        };
+
+        let currentItemIndex = 0;
+        let placedItems = {};
+        let skippedItems = [];
+        let votes = {};
+        let userVotes = new Map(); // username -> tierKey (single-vote correction)
+        let voters = new Set();
+        let isVoting = false;
+        let votingPaused = false;
+        let isPaused = false;
+        let timeRemaining = 30;
+        let pauseTimeRemaining = 30;
+        let timerInterval = null;
+        let pauseInterval = null;
+        let chart = null;
+        let ws = null;
+        let wsReconnectTimer = null;
+        let wsReconnectDelay = 3000;
+        let wsManualClose = false;
+        let allowMultiVote = false;
+        let needsPauseIntro = true;
+        let selectedItemIndex = -1;
+        let draggedItem = null;
+        let currentEditingTierIndex = null;
+        let pendingUploads = [];
+        let editingTier = null;
+
+        // ==========================================
+        // INIT & MIGRATION
+        // ==========================================
+        async function init() {
+            await dbLoadAllImages();
+            await loadFromLocalStorage();
+            initializeUI();
+            connectToChat();
+            setupColorPicker();
+            setupImageUpload();
+        }
+
+        async function loadFromLocalStorage() {
+            const prevVersion = localStorage.getItem('appVersion') || '';
+            localStorage.setItem('appVersion', APP_VERSION);
+
+            const preservedCreds = localStorage.getItem('tierlistCredentials');
+            let restoredChannel = '', restoredToken = '';
+            if (preservedCreds) {
+                try {
+                    const creds = JSON.parse(preservedCreds);
+                    restoredChannel = creds.channel || '';
+                    restoredToken = creds.token || '';
+                } catch {}
+                localStorage.removeItem('tierlistCredentials');
+            }
+
+            const saved = localStorage.getItem('tierlistConfig');
+            if (saved) {
+                try {
+                    const loaded = JSON.parse(saved);
+                    CONFIG = {
+                        ...CONFIG,
+                        ...loaded,
+                        criteria: {
+                            enabled: loaded.criteria?.enabled ?? true,
+                            items: loaded.criteria?.items ?? []
+                        }
+                    };
+                    // Upgrade untouched default palettes to Gold -> Cream Beige -> Crimson
+                    if (CONFIG.tiers.length === 6 && (
+                        CONFIG.tiers.every((tr, i) => tr.color.toLowerCase() === OLD_V21_COLORS[i]) ||
+                        CONFIG.tiers.every((tr, i) => tr.color.toLowerCase() === OLD_V23_COLORS[i]) ||
+                        CONFIG.tiers.every((tr, i) => tr.color.toLowerCase() === OLD_V24_COLORS[i])
+                    )) {
+                        CONFIG.tiers.forEach((tr, i) => { tr.color = DEFAULT_TIER_COLORS[i]; });
+                    }
+                    if (prevVersion !== APP_VERSION) {
+                        CONFIG.showChatGuide = false;
+                        if (CONFIG.accentHue === 187) {
+                            CONFIG.accentHue = 40;
+                            CONFIG.accentSat = 48;
+                            CONFIG.accentLight = 54;
+                        }
+                    }
+                } catch {}
+            }
+
+            if (restoredChannel) CONFIG.channel = restoredChannel;
+            if (restoredToken) CONFIG.token = restoredToken;
+
+            // Migrate any inline base64 images from localStorage into IndexedDB
+            let migrated = false;
+            for (let i = 0; i < CONFIG.items.length; i++) {
+                const it = CONFIG.items[i];
+                if (!it.id) {
+                    it.id = `img_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 7)}`;
+                    migrated = true;
+                }
+                if (it.image) {
+                    await dbPutImage(it.id, it.image);
+                    delete it.image;
+                    migrated = true;
+                }
+            }
+            if (migrated || prevVersion !== APP_VERSION) saveToLocalStorage();
+
+            try {
+                const sp = localStorage.getItem('tierlistPlacedItems');
+                if (sp) placedItems = JSON.parse(sp);
+                const ss = localStorage.getItem('tierlistSkippedItems');
+                if (ss) skippedItems = JSON.parse(ss);
+                const si = localStorage.getItem('tierlistCurrentIndex');
+                if (si !== null) currentItemIndex = parseInt(si, 10) || 0;
+            } catch {}
+
+            sanitizeState();
+        }
+
+        function sanitizeState() {
+            const totalItems = CONFIG.items.length;
+            const validTierKeys = CONFIG.tiers.map(t => t.key);
+            const cleanedPlaced = {};
+            for (const [idx, data] of Object.entries(placedItems)) {
+                const itemIdx = parseInt(idx, 10);
+                if (itemIdx >= 0 && itemIdx < totalItems && (data.tier === '__discarded__' || validTierKeys.includes(data.tier))) {
+                    cleanedPlaced[idx] = data;
+                }
+            }
+            placedItems = cleanedPlaced;
+            skippedItems = [...new Set(skippedItems.filter(idx => idx >= 0 && idx < totalItems && !placedItems[idx]))];
+
+            if (currentItemIndex < 0 || currentItemIndex >= totalItems || placedItems[currentItemIndex]) {
+                const next = CONFIG.items.findIndex((_, i) => !placedItems[i]);
+                currentItemIndex = next >= 0 ? next : 0;
+            }
+
+            if (isVoting) { isVoting = false; clearInterval(timerInterval); }
+            if (isPaused) { isPaused = false; clearInterval(pauseInterval); }
+
+            localStorage.setItem('tierlistPlacedItems', JSON.stringify(placedItems));
+            localStorage.setItem('tierlistSkippedItems', JSON.stringify(skippedItems));
+            localStorage.setItem('tierlistCurrentIndex', currentItemIndex.toString());
+        }
+
+        function saveToLocalStorage() {
+            // Strip inline images if any slipped in; IndexedDB holds them
+            const slimItems = CONFIG.items.map(it => ({ id: it.id, name: it.name }));
+            const toSave = { ...CONFIG, items: slimItems };
+            localStorage.setItem('tierlistConfig', JSON.stringify(toSave));
+            const indicator = document.getElementById('lastSaved');
+            if (indicator) indicator.textContent = new Date().toLocaleTimeString();
+        }
+
+        function initializeUI() {
+            applyTranslations();
+            document.getElementById('tierlistTitle').textContent = CONFIG.title || 'TIERLIST';
+            document.getElementById('settingTitle').value = CONFIG.title;
+            document.getElementById('settingLanguage').value = CONFIG.language === 'de' ? 'de' : 'en';
+            document.getElementById('settingVoteDuration').value = CONFIG.votingDuration;
+            document.getElementById('settingPauseDuration').value = CONFIG.pauseDuration;
+            document.getElementById('settingChannel').value = CONFIG.channel;
+            document.getElementById('settingToken').value = (CONFIG.token || '').replace(/^oauth:/, '');
+
+            const setRadio = (name, val) => {
+                const el = document.querySelector(`input[name="${name}"][value="${val}"]`);
+                if (el) el.checked = true;
+            };
+            setRadio('itemSize', CONFIG.itemSize);
+            setRadio('labelMode', CONFIG.showLabels ? 'labels' : 'icons');
+            setRadio('votingMode', CONFIG.votingMode);
+            setRadio('tieBreaker', CONFIG.tieBreaker);
+
+            document.getElementById('autoSortCheckbox').checked = CONFIG.autoSort;
+            document.getElementById('criteriaEnabledCheckbox').checked = CONFIG.criteria.enabled;
+            document.getElementById('showChatGuideCheckbox').checked = !!CONFIG.showChatGuide;
+            document.getElementById('showVoteTickerCheckbox').checked = CONFIG.showVoteTicker !== false;
+            document.getElementById('soundEnabledCheckbox').checked = !!CONFIG.soundEnabled;
+            document.getElementById('allowTextAfterCmdCheckbox').checked = CONFIG.allowTextAfterCmd !== false;
+            document.getElementById('modCommandsCheckbox').checked = CONFIG.modCommands !== false;
+            document.getElementById('chatSpace').classList.toggle('hidden-guide', !CONFIG.showChatGuide);
+
+            document.getElementById('bgOpacitySlider').value = CONFIG.bgOpacity;
+            document.getElementById('accentHueSlider').value = CONFIG.accentHue;
+            document.getElementById('pauseBtn').disabled = true;
+            document.getElementById('timer').textContent = CONFIG.votingDuration;
+            document.getElementById('itemCount').textContent = CONFIG.items.length;
+
+            votes = {};
+            CONFIG.tiers.forEach(tier => { votes[tier.key] = 0; });
+
+            renderTiers();
+            renderUnplacedItems();
+            renderSettingsTiers();
+            renderSettingsItems();
+            renderCriteriaSettings();
+            if (chart) chart.destroy();
+            initChart();
+            updateProgress();
+            showCurrentItem();
+            renderControlPanel();
+            applyAppearance(false);
+        }
+
+        // ==========================================
+        // APPEARANCE & SETTINGS TABS
+        // ==========================================
+        function applyAppearance(shouldSave = true) {
+            const opacity = parseInt(document.getElementById('bgOpacitySlider').value, 10);
+            const hue = parseInt(document.getElementById('accentHueSlider').value, 10);
+            const sat = CONFIG.accentSat ?? 48;
+            const light = CONFIG.accentLight ?? 54;
+            CONFIG.bgOpacity = opacity;
+            CONFIG.accentHue = hue;
+            document.documentElement.style.setProperty('--bg-opacity', (opacity / 100).toFixed(2));
+            document.documentElement.style.setProperty('--accent-hue', hue);
+            document.documentElement.style.setProperty('--accent-sat', sat + '%');
+            document.documentElement.style.setProperty('--accent-light', light + '%');
+            document.getElementById('bgOpacityValue').textContent = opacity + '%';
+            document.getElementById('accentPreview').style.background = `hsl(${hue}, ${sat}%, ${light}%)`;
+            if (shouldSave) saveToLocalStorage();
+        }
+
+        function setAccentPreset(hue, sat, light) {
+            CONFIG.accentSat = sat;
+            CONFIG.accentLight = light;
+            document.getElementById('accentHueSlider').value = hue;
+            applyAppearance(true);
+        }
+
+        function switchSettingsTab(tabId) {
+            document.querySelectorAll('.settings-tab').forEach(btn => {
+                const active = btn.dataset.tab === tabId;
+                btn.classList.toggle('active', active);
+                btn.setAttribute('aria-selected', active ? 'true' : 'false');
+            });
+            document.querySelectorAll('.settings-tab-pane').forEach(pane => {
+                pane.classList.toggle('active', pane.id === `tab-${tabId}`);
+            });
+        }
+
+        function toggleSettings(forceState) {
+            const panel = document.getElementById('settingsPanel');
+            const backdrop = document.getElementById('settingsBackdrop');
+            const open = typeof forceState === 'boolean' ? forceState : !panel.classList.contains('open');
+            panel.classList.toggle('open', open);
+            backdrop.classList.toggle('open', open);
+        }
+
+        function openTwitchSettings() { switchSettingsTab('twitch'); toggleSettings(true); }
+        function openItemsSettings() { switchSettingsTab('items'); toggleSettings(true); }
+
+        function instantSaveSetting(key, value) {
+            switch (key) {
+                case 'language':
+                    CONFIG.language = value;
+                    applyTranslations();
+                    renderUnplacedItems();
+                    showCurrentItem();
+                    renderSettingsItems();
+                    if (!CONFIG.token || !CONFIG.channel) setConnectionUI('disconnected', t('connNone'));
+                    break;
+                case 'showLabels': CONFIG.showLabels = value; renderTiers(); renderUnplacedItems(); break;
+                case 'itemSize': CONFIG.itemSize = value; renderTiers(); renderUnplacedItems(); break;
+                case 'votingMode': CONFIG.votingMode = value; updateStats(); break;
+                case 'tieBreaker': CONFIG.tieBreaker = value; break;
+                case 'autoSort': CONFIG.autoSort = value; break;
+                case 'criteriaEnabled': CONFIG.criteria.enabled = value; break;
+                case 'showVoteTicker': CONFIG.showVoteTicker = value; break;
+                case 'soundEnabled': CONFIG.soundEnabled = value; break;
+                case 'allowTextAfterCmd': CONFIG.allowTextAfterCmd = value; break;
+                case 'modCommands': CONFIG.modCommands = value; break;
+                case 'showChatGuide':
+                    CONFIG.showChatGuide = value;
+                    document.getElementById('chatSpace').classList.toggle('hidden-guide', !value);
+                    break;
+            }
+            saveToLocalStorage();
+            showToast(CONFIG.language === 'de' ? 'Einstellung gespeichert' : 'Setting updated', 1400);
+        }
+
+        function saveSettings() {
+            CONFIG.title = document.getElementById('settingTitle').value.trim() || 'TIERLIST';
+            CONFIG.language = document.getElementById('settingLanguage').value;
+            CONFIG.votingDuration = Math.max(5, parseInt(document.getElementById('settingVoteDuration').value, 10) || 30);
+            CONFIG.pauseDuration = Math.max(0, parseInt(document.getElementById('settingPauseDuration').value, 10) || 0);
+            CONFIG.channel = document.getElementById('settingChannel').value.trim().toLowerCase().replace(/\s+/g, '');
+
+            let token = document.getElementById('settingToken').value.replace(/\s+/g, '').replace(/^oauth:/i, '');
+            CONFIG.token = token ? 'oauth:' + token : '';
+
+            CONFIG.itemSize = parseInt(document.querySelector('input[name="itemSize"]:checked').value, 10);
+            CONFIG.showLabels = document.querySelector('input[name="labelMode"]:checked').value === 'labels';
+            CONFIG.votingMode = document.querySelector('input[name="votingMode"]:checked').value;
+            CONFIG.tieBreaker = document.querySelector('input[name="tieBreaker"]:checked').value;
+            CONFIG.autoSort = document.getElementById('autoSortCheckbox').checked;
+            CONFIG.criteria.enabled = document.getElementById('criteriaEnabledCheckbox').checked;
+            CONFIG.showChatGuide = document.getElementById('showChatGuideCheckbox').checked;
+            CONFIG.showVoteTicker = document.getElementById('showVoteTickerCheckbox').checked;
+            CONFIG.soundEnabled = document.getElementById('soundEnabledCheckbox').checked;
+            CONFIG.allowTextAfterCmd = document.getElementById('allowTextAfterCmdCheckbox').checked;
+            CONFIG.modCommands = document.getElementById('modCommandsCheckbox').checked;
+
+            saveToLocalStorage();
+            sanitizeState();
+            initializeUI();
+            showToast(CONFIG.language === 'de' ? 'Einstellungen gespeichert' : 'Settings saved', 2000);
+            toggleSettings(false);
+
+            wsManualClose = true;
+            if (ws) ws.close();
+            wsManualClose = false;
+            connectToChat();
+        }
+
+        // ==========================================
+        // EXPORT / IMPORT / RESET
+        // ==========================================
+        function exportProgress() {
+            const fullItems = CONFIG.items.map(it => ({ id: it.id, name: it.name, image: getItemImage(it) }));
+            const exportData = {
+                version: APP_VERSION,
+                timestamp: new Date().toISOString(),
+                config: { ...CONFIG, items: fullItems },
+                placedItems,
+                skippedItems,
+                currentItemIndex
+            };
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `tierlist_backup_${ts}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast(CONFIG.language === 'de' ? 'Backup exportiert' : 'Backup exported', 2500);
+        }
+
+        function importProgress(file) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!data.config) { showToast('Invalid backup file', 3000); return; }
+                    await dbClearImages();
+                    const importedItems = [];
+                    for (let i = 0; i < (data.config.items || []).length; i++) {
+                        const it = data.config.items[i];
+                        const id = it.id || `img_${Date.now()}_${i}`;
+                        if (it.image) await dbPutImage(id, it.image);
+                        importedItems.push({ id, name: it.name || '' });
+                    }
+                    CONFIG = { ...CONFIG, ...data.config, items: importedItems };
+                    placedItems = data.placedItems || {};
+                    skippedItems = data.skippedItems || [];
+                    currentItemIndex = data.currentItemIndex || 0;
+                    saveToLocalStorage();
+                    sanitizeState();
+                    initializeUI();
+                    showToast(CONFIG.language === 'de' ? 'Backup wiederhergestellt' : 'Backup restored', 2500);
+                } catch {
+                    showToast('Error reading backup file', 3000);
+                }
+            };
+            reader.readAsText(file);
+            document.getElementById('importFile').value = '';
+        }
+
+        async function resetAllTiersAndItems() {
+            const creds = { channel: CONFIG.channel, token: CONFIG.token };
+            await dbClearImages();
+            localStorage.removeItem('tierlistConfig');
+            localStorage.removeItem('tierlistPlacedItems');
+            localStorage.removeItem('tierlistSkippedItems');
+            localStorage.removeItem('tierlistCurrentIndex');
+            localStorage.setItem('tierlistCredentials', JSON.stringify(creds));
+            showToast('Resetting...', 1000);
+            setTimeout(() => location.reload(), 500);
+        }
+
+        async function clearBrowserCache() {
+            const creds = { channel: CONFIG.channel, token: CONFIG.token };
+            await dbClearImages();
+            localStorage.clear();
+            localStorage.setItem('tierlistCredentials', JSON.stringify(creds));
+            showToast('Clearing cache...', 1000);
+            setTimeout(() => location.reload(), 500);
+        }
+
+        // ==========================================
+        // CRITERIA & TIERS
+        // ==========================================
+        function renderCriteriaSettings() {
+            const container = document.getElementById('criteriaList');
+            container.innerHTML = '';
+            CONFIG.criteria.items.forEach((criterion, index) => {
+                const div = document.createElement('div');
+                div.className = 'criterion-item';
+                div.innerHTML = `
+                    <span class="criterion-number">${index + 1}.</span>
+                    <input type="text" class="criterion-input" value="${escapeHtml(criterion)}" placeholder="Criterion..." onchange="updateCriterion(${index}, this.value)">
+                    <button type="button" class="btn-icon delete" onclick="deleteCriterion(${index})" aria-label="Delete criterion">
+                        <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+            const count = CONFIG.criteria.items.length;
+            document.getElementById('criteriaCounter').textContent = `${count}/7`;
+            document.getElementById('addCriterionBtn').disabled = count >= 7;
+        }
+
+        function addCriterion() { if (CONFIG.criteria.items.length < 7) { CONFIG.criteria.items.push(''); renderCriteriaSettings(); } }
+        function updateCriterion(index, value) { CONFIG.criteria.items[index] = value.trim(); saveToLocalStorage(); }
+        function deleteCriterion(index) { CONFIG.criteria.items.splice(index, 1); renderCriteriaSettings(); saveToLocalStorage(); }
+
+        function resetTierColors() {
+            CONFIG.tiers.forEach((tier, i) => {
+                tier.color = DEFAULT_TIER_COLORS[i % DEFAULT_TIER_COLORS.length];
+            });
+            renderSettingsTiers();
+            renderTiers();
+            if (chart) { chart.destroy(); initChart(); }
+            saveToLocalStorage();
+            showToast(CONFIG.language === 'de' ? 'Farben zurückgesetzt' : 'Tier colors reset', 1800);
+        }
+
+        function renderSettingsTiers() {
+            const container = document.getElementById('tiersList');
+            container.innerHTML = '';
+            CONFIG.tiers.forEach((tier, index) => {
+                const div = document.createElement('div');
+                div.className = 'tier-item';
+                if (editingTier === index) {
+                    div.innerHTML = `
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <div style="flex:1; display:grid; grid-template-columns:100px 1fr; gap:8px;">
+                                <input type="text" class="form-input" id="editKey${index}" value="${escapeHtml(tier.key.replace('!', ''))}" maxlength="3" placeholder="Key">
+                                <input type="text" class="form-input" id="editName${index}" value="${escapeHtml(tier.name)}" placeholder="Name">
+                            </div>
+                            <button type="button" class="btn-icon" onclick="saveEditTier(${index})" title="Save" style="color:var(--success);"><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+                            <button type="button" class="btn-icon" onclick="cancelEditTier()" title="Cancel"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+                        </div>
+                    `;
+                } else {
+                    div.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <button type="button" class="tier-color-preview" style="background:${tier.color};" onclick="openColorPicker(${index})" title="Change color"></button>
+                            <div style="flex:1; min-width:0;">
+                                <div style="font-weight:600; font-size:14px; color:var(--text-primary);">${escapeHtml(tier.name)}</div>
+                                <div style="font-size:12px; color:var(--text-muted);">Command: <code>${escapeHtml(tier.key)}</code></div>
+                            </div>
+                            <div style="display:flex; gap:4px;">
+                                <button type="button" class="btn-icon" onclick="moveTierUp(${index})" ${index === 0 ? 'disabled' : ''} aria-label="Move up"><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg></button>
+                                <button type="button" class="btn-icon" onclick="moveTierDown(${index})" ${index === CONFIG.tiers.length - 1 ? 'disabled' : ''} aria-label="Move down"><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+                                <button type="button" class="btn-icon" onclick="startEditTier(${index})" aria-label="Edit"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+                                <button type="button" class="btn-icon delete" onclick="deleteTier(${index})" aria-label="Delete"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+                            </div>
+                        </div>
+                    `;
+                }
+                container.appendChild(div);
+            });
+        }
+
+        function startEditTier(i) { editingTier = i; renderSettingsTiers(); }
+        function cancelEditTier() { editingTier = null; renderSettingsTiers(); }
+
+        function saveEditTier(index) {
+            const tier = CONFIG.tiers[index];
+            let newKey = document.getElementById(`editKey${index}`).value.trim().toUpperCase();
+            const newName = document.getElementById(`editName${index}`).value.trim();
+            if (!newKey || !newName) { showToast('Key and name required', 2500); return; }
+            if (!newKey.startsWith('!')) newKey = '!' + newKey;
+            if (CONFIG.tiers.some((tr, i) => i !== index && tr.key.toUpperCase() === newKey)) { showToast('Key already exists', 2500); return; }
+
+            const oldKey = tier.key;
+            tier.key = newKey;
+            tier.name = newName;
+            if (oldKey !== newKey) {
+                votes[newKey] = votes[oldKey] || 0;
+                delete votes[oldKey];
+                for (const data of Object.values(placedItems)) {
+                    if (data.tier === oldKey) data.tier = newKey;
+                }
+            }
+            editingTier = null;
+            renderSettingsTiers();
+            renderTiers();
+            if (chart) { chart.destroy(); initChart(); }
+            saveToLocalStorage();
+        }
+
+        function addTier() {
+            let key = document.getElementById('newTierKey').value.trim().toUpperCase();
+            const name = document.getElementById('newTierName').value.trim();
+            if (!key || !name) { showToast('Enter both key and name', 2500); return; }
+            if (!key.startsWith('!')) key = '!' + key;
+            if (key.length > 4) { showToast('Key max 4 characters', 2500); return; }
+            if (CONFIG.tiers.some(tr => tr.key.toUpperCase() === key)) { showToast('Key already exists', 2500); return; }
+
+            CONFIG.tiers.push({ key, name, color: '#475569' });
+            document.getElementById('newTierKey').value = '';
+            document.getElementById('newTierName').value = '';
+            votes[key] = 0;
+            renderSettingsTiers();
+            renderTiers();
+            if (chart) { chart.destroy(); initChart(); }
+            saveToLocalStorage();
+        }
+
+        function deleteTier(index) {
+            if (CONFIG.tiers.length <= 2) { showToast('At least 2 tiers required', 2500); return; }
+            const deletedKey = CONFIG.tiers[index].key;
+            CONFIG.tiers.splice(index, 1);
+            delete votes[deletedKey];
+            renderSettingsTiers();
+            sanitizeState();
+            renderTiers();
+            renderUnplacedItems();
+            updateProgress();
+            if (chart) { chart.destroy(); initChart(); }
+            saveToLocalStorage();
+        }
+
+        function moveTierUp(index) {
+            if (index <= 0) return;
+            [CONFIG.tiers[index], CONFIG.tiers[index - 1]] = [CONFIG.tiers[index - 1], CONFIG.tiers[index]];
+            renderSettingsTiers(); renderTiers();
+            if (chart) { chart.destroy(); initChart(); }
+            saveToLocalStorage();
+        }
+        function moveTierDown(index) {
+            if (index >= CONFIG.tiers.length - 1) return;
+            [CONFIG.tiers[index], CONFIG.tiers[index + 1]] = [CONFIG.tiers[index + 1], CONFIG.tiers[index]];
+            renderSettingsTiers(); renderTiers();
+            if (chart) { chart.destroy(); initChart(); }
+            saveToLocalStorage();
+        }
+
+        // ==========================================
+        // COLOR PICKER
+        // ==========================================
+        function setupColorPicker() {
+            ['hueSlider', 'satSlider', 'lightSlider'].forEach(id => {
+                document.getElementById(id).addEventListener('input', updateColorPreview);
+            });
+        }
+        function openColorPicker(tierIndex) {
+            currentEditingTierIndex = tierIndex;
+            setPickerHex(CONFIG.tiers[tierIndex].color);
+            document.getElementById('colorPickerModal').classList.add('active');
+        }
+        function setPickerHex(hex) {
+            const hsl = hexToHSL(hex);
+            document.getElementById('hueSlider').value = hsl.h;
+            document.getElementById('satSlider').value = hsl.s;
+            document.getElementById('lightSlider').value = hsl.l;
+            updateColorPreview();
+        }
+        function closeColorPicker() { document.getElementById('colorPickerModal').classList.remove('active'); currentEditingTierIndex = null; }
+        function updateColorPreview() {
+            const h = document.getElementById('hueSlider').value;
+            const s = document.getElementById('satSlider').value;
+            const l = document.getElementById('lightSlider').value;
+            document.getElementById('hueValue').textContent = h + '°';
+            document.getElementById('satValue').textContent = s + '%';
+            document.getElementById('lightValue').textContent = l + '%';
+            const color = hslToHex(h, s, l);
+            const preview = document.getElementById('colorPreview');
+            preview.style.background = color;
+            preview.style.color = getContrastTextColor(color);
+            preview.textContent = color.toUpperCase();
+        }
+        function applyColor() {
+            if (currentEditingTierIndex !== null) {
+                const h = document.getElementById('hueSlider').value;
+                const s = document.getElementById('satSlider').value;
+                const l = document.getElementById('lightSlider').value;
+                CONFIG.tiers[currentEditingTierIndex].color = hslToHex(h, s, l);
+                renderSettingsTiers(); renderTiers();
+                if (chart) { chart.destroy(); initChart(); }
+                saveToLocalStorage(); closeColorPicker();
+            }
+        }
+        function hslToHex(h, s, l) {
+            h /= 360; s /= 100; l /= 100;
+            let r, g, b;
+            if (s === 0) { r = g = b = l; }
+            else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1; if (t > 1) t -= 1;
+                    if (t < 1 / 6) return p + (q - p) * 6 * t;
+                    if (t < 1 / 2) return q;
+                    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+                    return p;
+                };
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1 / 3); g = hue2rgb(p, q, h); b = hue2rgb(p, q, h - 1 / 3);
+            }
+            const toHex = x => Math.round(x * 255).toString(16).padStart(2, '0');
+            return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+        }
+        function hexToHSL(hex) {
+            const res = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '#475569');
+            let r = parseInt(res[1], 16) / 255, g = parseInt(res[2], 16) / 255, b = parseInt(res[3], 16) / 255;
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h = 0, s = 0, l = (max + min) / 2;
+            if (max !== min) {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                    case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+                    case g: h = ((b - r) / d + 2) / 6; break;
+                    case b: h = ((r - g) / d + 4) / 6; break;
+                }
+            }
+            return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+        }
+
+        // ==========================================
+        // IMAGE UPLOAD & ITEMS
+        // ==========================================
+        function setupImageUpload() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            uploadArea.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+            uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+            uploadArea.addEventListener('drop', (e) => { e.preventDefault(); uploadArea.classList.remove('dragover'); handleFiles(e.dataTransfer.files); });
+            fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+        }
+
+        function handleFiles(files) {
+            pendingUploads = [];
+            document.getElementById('uploadTable').innerHTML = '';
+            Array.from(files).forEach(file => {
+                if (!file.type.startsWith('image/')) return;
+                const reader = new FileReader();
+                reader.onload = (e) => processImage(e.target.result, file.name);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function processImage(dataUrl, filename) {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 200; canvas.height = 200;
+                const size = Math.min(img.width, img.height);
+                ctx.drawImage(img, (img.width - size) / 2, (img.height - size) / 2, size, size, 0, 0, 200, 200);
+                const processedData = canvas.toDataURL('image/webp', 0.88);
+                const cleanName = filename.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
+                pendingUploads.push({ image: processedData, name: cleanName, filename });
+                renderUploadTable();
+            };
+            img.src = dataUrl;
+        }
+
+        function renderUploadTable() {
+            const table = document.getElementById('uploadTable');
+            table.classList.add('active');
+            let html = CONFIG.showLabels
+                ? `<div class="upload-quick-actions"><button type="button" class="btn-small" onclick="fillFromFilenames()">Use Filenames</button><button type="button" class="btn-small" onclick="clearAllNames()">Clear Names</button></div>`
+                : '';
+            pendingUploads.forEach((item, index) => {
+                html += `
+                    <div class="upload-item">
+                        <img class="upload-preview" src="${item.image}" alt="">
+                        <div class="upload-info">
+                            <div class="upload-filename">${escapeHtml(item.filename)}</div>
+                            ${CONFIG.showLabels
+                                ? `<input type="text" class="upload-name-input" id="uploadName${index}" value="${escapeHtml(item.name)}" placeholder="Item name">`
+                                : `<div style="color:var(--text-muted); font-size:12px;">Icons-only mode</div>`
+                            }
+                        </div>
+                        <div class="upload-actions">
+                            ${CONFIG.showLabels ? `<button type="button" class="btn-small" onclick="useFilename(${index})">Reset</button>` : ''}
+                            <button type="button" class="btn-small" onclick="removeUpload(${index})">Remove</button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += `<button type="button" class="btn-add" onclick="addAllUploads()" style="width:100%; margin-top:8px;">Add ${pendingUploads.length} Item${pendingUploads.length !== 1 ? 's' : ''}</button>`;
+            table.innerHTML = html;
+        }
+
+        function fillFromFilenames() { pendingUploads.forEach((item, i) => { const el = document.getElementById(`uploadName${i}`); if (el) el.value = item.name; }); }
+        function clearAllNames() { pendingUploads.forEach((_, i) => { const el = document.getElementById(`uploadName${i}`); if (el) el.value = ''; }); }
+        function useFilename(i) { const el = document.getElementById(`uploadName${i}`); if (el) el.value = pendingUploads[i].name; }
+        function removeUpload(i) {
+            pendingUploads.splice(i, 1);
+            const table = document.getElementById('uploadTable');
+            if (pendingUploads.length === 0) { table.classList.remove('active'); table.innerHTML = ''; }
+            else renderUploadTable();
+        }
+
+        async function addAllUploads() {
+            for (let i = 0; i < pendingUploads.length; i++) {
+                const item = pendingUploads[i];
+                const el = document.getElementById(`uploadName${i}`);
+                const name = el ? el.value.trim() : item.name;
+                const id = `img_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 7)}`;
+                await dbPutImage(id, item.image);
+                CONFIG.items.push({ id, name });
+            }
+            pendingUploads = [];
+            document.getElementById('uploadTable').classList.remove('active');
+            document.getElementById('uploadTable').innerHTML = '';
+            document.getElementById('fileInput').value = '';
+            saveToLocalStorage();
+            renderSettingsItems();
+            renderUnplacedItems();
+            updateProgress();
+            showCurrentItem();
+            showToast(CONFIG.language === 'de' ? 'Items hinzugefügt' : 'Items added', 1800);
+        }
+
+        function renderSettingsItems() {
+            const container = document.getElementById('itemsList');
+            const filter = (document.getElementById('itemSearchInput')?.value || '').trim().toLowerCase();
+            container.innerHTML = '';
+
+            const visible = CONFIG.items
+                .map((item, index) => ({ item, index }))
+                .filter(({ item }) => !filter || (item.name || '').toLowerCase().includes(filter));
+
+            if (visible.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding:18px; color:var(--text-muted); font-size:13px;">${CONFIG.items.length === 0 ? t('emptyUnplaced') : '—'}</div>`;
+            } else {
+                visible.forEach(({ item, index }) => {
+                    const div = document.createElement('div');
+                    div.className = 'settings-item';
+                    div.innerHTML = `
+                        <img class="item-thumb" src="${getItemImage(item)}" alt="">
+                        <input type="text" class="item-inline-name" value="${escapeHtml(item.name)}" placeholder="Item name" onchange="renameItem(${index}, this.value)">
+                        <button type="button" class="btn-icon delete" onclick="deleteItem(${index})" aria-label="Delete item">
+                            <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                        </button>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+            document.getElementById('itemCount').textContent = CONFIG.items.length;
+        }
+
+        function renameItem(index, newName) {
+            if (!CONFIG.items[index]) return;
+            CONFIG.items[index].name = newName.trim();
+            saveToLocalStorage();
+            renderTiers();
+            renderUnplacedItems();
+            showCurrentItem();
+        }
+
+        async function deleteItem(index) {
+            const item = CONFIG.items[index];
+            if (item?.id) await dbDeleteImage(item.id);
+            CONFIG.items.splice(index, 1);
+            const newPlaced = {};
+            for (const [k, v] of Object.entries(placedItems)) {
+                const idx = parseInt(k, 10);
+                if (idx < index) newPlaced[idx] = v;
+                else if (idx > index) newPlaced[idx - 1] = v;
+            }
+            placedItems = newPlaced;
+            skippedItems = skippedItems.filter(idx => idx !== index).map(idx => (idx > index ? idx - 1 : idx));
+            sanitizeState();
+            saveToLocalStorage();
+            renderSettingsItems();
+            renderTiers();
+            renderUnplacedItems();
+            updateProgress();
+            showCurrentItem();
+        }
+
+        async function clearAllItems() {
+            if (CONFIG.items.length === 0) return;
+            await dbClearImages();
+            CONFIG.items = [];
+            placedItems = {};
+            skippedItems = [];
+            currentItemIndex = 0;
+            selectedItemIndex = -1;
+            saveToLocalStorage();
+            sanitizeState();
+            renderSettingsItems();
+            renderTiers();
+            renderUnplacedItems();
+            updateProgress();
+            showCurrentItem();
+        }
+
+        function shuffleUnplacedItems() {
+            const unplacedIndices = CONFIG.items.map((_, i) => i).filter(i => !placedItems[i]);
+            if (unplacedIndices.length < 2) return;
+            const unplacedObjs = unplacedIndices.map(i => CONFIG.items[i]);
+            for (let i = unplacedObjs.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [unplacedObjs[i], unplacedObjs[j]] = [unplacedObjs[j], unplacedObjs[i]];
+            }
+            unplacedIndices.forEach((origIdx, k) => { CONFIG.items[origIdx] = unplacedObjs[k]; });
+            currentItemIndex = unplacedIndices[0];
+            saveToLocalStorage();
+            renderSettingsItems();
+            renderUnplacedItems();
+            showCurrentItem();
+            showToast(CONFIG.language === 'de' ? 'Warteschlange gemischt' : 'Queue shuffled', 1800);
+        }
+
+        // ==========================================
+        // TOKEN HELPER
+        // ==========================================
+        function toggleTokenVisibility() {
+            const input = document.getElementById('settingToken');
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+        function openTokenHelper() { document.getElementById('tokenHelpModal').classList.add('active'); }
+        function closeTokenHelper() { document.getElementById('tokenHelpModal').classList.remove('active'); }
+
+        // ==========================================
+        // TIERLIST & ITEM INTERACTION
+        // ==========================================
+        function renderTiers() {
+            const container = document.getElementById('tiersContainer');
+            container.innerHTML = '';
+            CONFIG.tiers.forEach(tier => {
+                const tierRow = document.createElement('div');
+                tierRow.className = 'tier-row';
+                const len = tier.name.length;
+                const fontSize = len <= 1 ? 32 : len <= 2 ? 26 : len <= 4 ? 19 : len <= 8 ? 15 : 13;
+                const textColor = getContrastTextColor(tier.color);
+                tierRow.innerHTML = `
+                    <button type="button" class="tier-label" style="background:${tier.color}; color:${textColor}; font-size:${fontSize}px;"
+                            onclick="onTierLabelClick('${escapeHtml(tier.key)}')">${escapeHtml(tier.name)}</button>
+                    <div class="tier-content" data-tier="${escapeHtml(tier.key)}"></div>
+                `;
+                container.appendChild(tierRow);
+                const content = tierRow.querySelector('.tier-content');
+                content.addEventListener('dragover', handleDragOver);
+                content.addEventListener('drop', (e) => handleDrop(e, tier.key));
+                content.addEventListener('dragleave', handleDragLeave);
+                renderSortedTier(tier.key);
+            });
+            renderControlPanel();
+        }
+
+        function onTierLabelClick(tierKey) {
+            if (selectedItemIndex >= 0) {
+                moveItemToTier(selectedItemIndex, tierKey);
+                selectedItemIndex = -1;
+                updateControlPanel();
+            } else {
+                showToast(CONFIG.language === 'de' ? 'Zuerst ein Item auswählen' : 'Select an item first', 1500);
+            }
+        }
+
+        function renderUnplacedItems() {
+            const container = document.getElementById('unplacedItems');
+            container.innerHTML = '';
+            if (CONFIG.items.length === 0) {
+                container.innerHTML = `
+                    <div class="unplaced-empty">
+                        <div>${t('emptyUnplaced')}</div>
+                        <button type="button" class="btn-secondary" onclick="openItemsSettings()" style="padding:7px 14px; font-size:12px;">${t('uploadInSettings')}</button>
+                    </div>
+                `;
+                return;
+            }
+            let count = 0;
+            CONFIG.items.forEach((item, index) => {
+                if (!placedItems[index]) { container.appendChild(createItemElement(item, index)); count++; }
+            });
+            if (count === 0) container.innerHTML = `<div class="unplaced-empty">${t('allPlaced')}</div>`;
+        }
+
+        function createItemElement(item, index, tierKey = null) {
+            const div = document.createElement('div');
+            div.className = `item size-${CONFIG.itemSize}`;
+            if (!CONFIG.showLabels) div.classList.add('icon-only');
+            div.draggable = true;
+            div.dataset.index = index;
+            if (index === currentItemIndex) div.classList.add('current');
+            if (index === selectedItemIndex) div.classList.add('selected');
+
+            div.innerHTML = `
+                <img class="item-image" src="${getItemImage(item)}" alt="${escapeHtml(item.name)}">
+                <div class="item-name">${escapeHtml(item.name)}</div>
+                <div class="item-actions">
+                    ${tierKey
+                        ? `<button type="button" class="item-btn danger" onclick="event.stopPropagation(); removeItemFromTier(${index})">×</button>`
+                        : `<div style="font-size:10px; color:var(--text-secondary);">Select</div>`
+                    }
+                </div>
+            `;
+            div.addEventListener('click', (e) => { if (!e.target.closest('.item-btn')) selectItem(index); });
+            div.addEventListener('dragstart', handleDragStart);
+            div.addEventListener('dragend', handleDragEnd);
+            return div;
+        }
+
+        function handleDragStart(e) { draggedItem = e.target.closest('.item'); if (draggedItem) draggedItem.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; }
+        function handleDragEnd() { if (draggedItem) { draggedItem.classList.remove('dragging'); draggedItem = null; } }
+        function handleDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; e.currentTarget.classList.add('drag-over'); }
+        function handleDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+        function handleDrop(e, tierKey) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            if (draggedItem) placeItem(parseInt(draggedItem.dataset.index, 10), tierKey, false);
+        }
+
+        function moveItemToTier(itemIndex, tierKey) {
+            const item = CONFIG.items[itemIndex];
+            if (!placedItems[itemIndex]) placedItems[itemIndex] = { tier: tierKey, score: 0, position: 0 };
+            else placedItems[itemIndex].tier = tierKey;
+            placedItems[itemIndex].position = Object.entries(placedItems).filter(([idx, d]) => d.tier === tierKey && parseInt(idx, 10) !== itemIndex).length;
+
+            renderTiers(); renderUnplacedItems(); updateProgress(); saveToLocalStorage();
+            localStorage.setItem('tierlistPlacedItems', JSON.stringify(placedItems));
+            showToast(`${item.name || 'Item'} → ${tierKey}`, 1600);
+
+            if (itemIndex === currentItemIndex) {
+                if (isVoting) { isVoting = false; votingPaused = false; clearInterval(timerInterval); document.getElementById('startBtn').disabled = false; setPauseButtonState(false, true); }
+                nextItem();
+                if (currentItemIndex < CONFIG.items.length && !placedItems[currentItemIndex] && CONFIG.pauseDuration > 0) startPause();
+            }
+        }
+
+        function removeItemFromTier(itemIndex) {
+            if (!placedItems[itemIndex]) return;
+            delete placedItems[itemIndex];
+            localStorage.setItem('tierlistPlacedItems', JSON.stringify(placedItems));
+            renderTiers(); renderUnplacedItems(); updateProgress(); saveToLocalStorage();
+        }
+
+        function normalizeTierPositions(tierKey) {
+            Object.entries(placedItems)
+                .filter(([, d]) => d.tier === tierKey)
+                .sort((a, b) => (a[1].position ?? 0) - (b[1].position ?? 0))
+                .forEach(([idx], i) => { placedItems[parseInt(idx, 10)].position = i; });
+        }
+
+        function moveItemLeft(tierKey, itemIndex) {
+            normalizeTierPositions(tierKey);
+            const arr = Object.entries(placedItems).filter(([, d]) => d.tier === tierKey).sort((a, b) => a[1].position - b[1].position).map(([i]) => parseInt(i, 10));
+            const pos = arr.indexOf(itemIndex);
+            if (pos <= 0) return;
+            const left = arr[pos - 1];
+            [placedItems[left].position, placedItems[itemIndex].position] = [placedItems[itemIndex].position, placedItems[left].position];
+            renderTiers(); localStorage.setItem('tierlistPlacedItems', JSON.stringify(placedItems));
+        }
+
+        function moveItemRight(tierKey, itemIndex) {
+            normalizeTierPositions(tierKey);
+            const arr = Object.entries(placedItems).filter(([, d]) => d.tier === tierKey).sort((a, b) => a[1].position - b[1].position).map(([i]) => parseInt(i, 10));
+            const pos = arr.indexOf(itemIndex);
+            if (pos < 0 || pos >= arr.length - 1) return;
+            const right = arr[pos + 1];
+            [placedItems[right].position, placedItems[itemIndex].position] = [placedItems[itemIndex].position, placedItems[right].position];
+            renderTiers(); localStorage.setItem('tierlistPlacedItems', JSON.stringify(placedItems));
+        }
+
+        function moveItemToStart(tierKey, itemIndex) { normalizeTierPositions(tierKey); placedItems[itemIndex].position = -1; normalizeTierPositions(tierKey); renderTiers(); localStorage.setItem('tierlistPlacedItems', JSON.stringify(placedItems)); }
+        function moveItemToEnd(tierKey, itemIndex) { normalizeTierPositions(tierKey); placedItems[itemIndex].position = Object.values(placedItems).filter(d => d.tier === tierKey).length + 1; normalizeTierPositions(tierKey); renderTiers(); localStorage.setItem('tierlistPlacedItems', JSON.stringify(placedItems)); }
+
+        function selectItem(index) { selectedItemIndex = selectedItemIndex === index ? -1 : index; renderTiers(); renderUnplacedItems(); updateControlPanel(); }
+
+        function renderControlPanel() {
+            const panel = document.getElementById('controlPanel');
+            if (!panel) return;
+            const hasSelected = selectedItemIndex >= 0;
+            const selectedInTier = hasSelected && placedItems[selectedItemIndex];
+            const tierKey = selectedInTier ? placedItems[selectedItemIndex].tier : null;
+
+            let isFirst = true, isLast = true;
+            if (tierKey) {
+                normalizeTierPositions(tierKey);
+                const arr = Object.entries(placedItems).filter(([, d]) => d.tier === tierKey).sort((a, b) => a[1].position - b[1].position).map(([i]) => parseInt(i, 10));
+                const pos = arr.indexOf(selectedItemIndex);
+                isFirst = pos <= 0;
+                isLast = pos >= arr.length - 1;
+            }
+
+            let html = `
+                <div class="ctrl-group-nav">
+                    <button type="button" class="ctrl-btn" onclick="ctrlMoveStart()" ${!selectedInTier || isFirst ? 'disabled' : ''} title="Move to start">«</button>
+                    <button type="button" class="ctrl-btn" onclick="ctrlMoveLeft()" ${!selectedInTier || isFirst ? 'disabled' : ''} title="Move left">‹</button>
+                </div>
+                <div class="ctrl-group-tiers">
+            `;
+            CONFIG.tiers.forEach(tier => {
+                html += `<button type="button" class="ctrl-btn tier-vote" onclick="ctrlTierAction('${escapeHtml(tier.key)}')" title="${escapeHtml(tier.name)} (${escapeHtml(tier.key)})">${escapeHtml(tier.name)}</button>`;
+            });
+            html += `
+                    <button type="button" class="ctrl-btn skip-btn" onclick="ctrlSkipItem()" ${!hasSelected ? 'disabled' : ''} title="Discard">✕</button>
+                </div>
+                <div class="ctrl-group-nav">
+                    <button type="button" class="ctrl-btn" onclick="ctrlMoveRight()" ${!selectedInTier || isLast ? 'disabled' : ''} title="Move right">›</button>
+                    <button type="button" class="ctrl-btn" onclick="ctrlMoveEnd()" ${!selectedInTier || isLast ? 'disabled' : ''} title="Move to end">»</button>
+                </div>
+            `;
+            panel.innerHTML = html;
+        }
+        function updateControlPanel() { renderControlPanel(); }
+
+        function ctrlMoveStart() { if (selectedItemIndex >= 0 && placedItems[selectedItemIndex]) moveItemToStart(placedItems[selectedItemIndex].tier, selectedItemIndex); }
+        function ctrlMoveLeft() { if (selectedItemIndex >= 0 && placedItems[selectedItemIndex]) moveItemLeft(placedItems[selectedItemIndex].tier, selectedItemIndex); }
+        function ctrlMoveRight() { if (selectedItemIndex >= 0 && placedItems[selectedItemIndex]) moveItemRight(placedItems[selectedItemIndex].tier, selectedItemIndex); }
+        function ctrlMoveEnd() { if (selectedItemIndex >= 0 && placedItems[selectedItemIndex]) moveItemToEnd(placedItems[selectedItemIndex].tier, selectedItemIndex); }
+
+        function ctrlSkipItem() {
+            if (selectedItemIndex < 0) return;
+            const itemIdx = selectedItemIndex;
+            placedItems[itemIdx] = { tier: '__discarded__', score: 0, position: 0, autoPlaced: false };
+            localStorage.setItem('tierlistPlacedItems', JSON.stringify(placedItems));
+            if (itemIdx === currentItemIndex) {
+                if (isVoting) { isVoting = false; votingPaused = false; clearInterval(timerInterval); document.getElementById('startBtn').disabled = false; setPauseButtonState(false, true); }
+                nextItem();
+                if (currentItemIndex < CONFIG.items.length && !placedItems[currentItemIndex] && CONFIG.pauseDuration > 0) startPause();
+            }
+            selectedItemIndex = -1;
+            renderTiers(); renderUnplacedItems(); updateProgress();
+        }
+
+        function ctrlTierAction(tierKey) {
+            if (isVoting && !votingPaused) streamerVote(tierKey);
+            else if (selectedItemIndex >= 0) { moveItemToTier(selectedItemIndex, tierKey); selectedItemIndex = -1; updateControlPanel(); }
+        }
+
+        function streamerVote(tierKey) {
+            if (!isVoting) return;
+            votes[tierKey] = (votes[tierKey] || 0) + 1;
+            voters.add('__streamer__');
+            updateChart(); updateStats();
+            const tierObj = CONFIG.tiers.find(tr => tr.key === tierKey);
+            const btns = document.querySelectorAll('.ctrl-btn.tier-vote');
+            btns.forEach(b => b.classList.remove('voted'));
+            const match = [...btns].find(b => b.textContent === tierObj?.name);
+            if (match) { match.classList.add('voted'); setTimeout(() => match.classList.remove('voted'), 450); }
+        }
+
+        function placeItem(itemIndex, tierKey, autoPlaced = true) {
+            const score = CONFIG.votingMode === 'average' && autoPlaced ? calculateAverage().average : 0;
+            const existingCount = Object.entries(placedItems).filter(([idx, d]) => d.tier === tierKey && parseInt(idx, 10) !== itemIndex).length;
+            placedItems[itemIndex] = { tier: tierKey, score, autoPlaced, position: existingCount };
+            localStorage.setItem('tierlistPlacedItems', JSON.stringify(placedItems));
+            localStorage.setItem('tierlistSkippedItems', JSON.stringify(skippedItems));
+            localStorage.setItem('tierlistCurrentIndex', currentItemIndex.toString());
+            renderSortedTier(tierKey); renderUnplacedItems(); updateProgress();
+            if (itemIndex === currentItemIndex) setTimeout(() => nextItem(), 450);
+        }
+
+        function renderSortedTier(tierKey) {
+            const tierContent = document.querySelector(`[data-tier="${CSS.escape(tierKey)}"]`);
+            if (!tierContent) return;
+            const itemsInTier = Object.entries(placedItems)
+                .filter(([, d]) => d.tier === tierKey)
+                .map(([idx, d]) => ({ index: parseInt(idx, 10), score: d.score || 0, position: d.position ?? 0 }))
+                .sort((a, b) => (CONFIG.autoSort && CONFIG.votingMode === 'average' && b.score !== a.score) ? b.score - a.score : a.position - b.position);
+            tierContent.innerHTML = '';
+            itemsInTier.forEach(item => {
+                const el = createItemElement(CONFIG.items[item.index], item.index, tierKey);
+                if (item.index === currentItemIndex) el.classList.add('placing');
+                tierContent.appendChild(el);
+            });
+        }
+
+        function showCurrentItem() {
+            const imgEl = document.getElementById('previewImage');
+            const placeholderEl = document.getElementById('previewPlaceholder');
+            const nameEl = document.getElementById('previewName');
+            const addBtn = document.getElementById('previewAddBtn');
+            const startBtn = document.getElementById('startBtn');
+
+            if (CONFIG.items.length === 0) {
+                imgEl.style.display = 'none'; imgEl.src = '';
+                placeholderEl.style.display = 'flex';
+                nameEl.textContent = t('noItemsLoaded');
+                addBtn.style.display = 'inline-block';
+                startBtn.disabled = true;
+                return;
+            }
+            addBtn.style.display = 'none';
+            if (currentItemIndex < CONFIG.items.length && !placedItems[currentItemIndex]) {
+                const item = CONFIG.items[currentItemIndex];
+                imgEl.src = getItemImage(item);
+                imgEl.style.display = 'block';
+                placeholderEl.style.display = 'none';
+                nameEl.textContent = item.name || 'Untitled';
+                startBtn.disabled = isVoting;
+                document.querySelectorAll('.item').forEach(el => el.classList.toggle('current', parseInt(el.dataset.index, 10) === currentItemIndex));
+            } else {
+                const nextUnplaced = CONFIG.items.findIndex((_, i) => !placedItems[i]);
+                if (nextUnplaced >= 0) { currentItemIndex = nextUnplaced; showCurrentItem(); return; }
+                imgEl.style.display = 'none'; imgEl.src = '';
+                placeholderEl.style.display = 'flex';
+                nameEl.textContent = t('allRanked');
+                startBtn.disabled = true;
+            }
+        }
+
+        function nextItem() {
+            needsPauseIntro = true;
+            for (let i = currentItemIndex + 1; i < CONFIG.items.length; i++) {
+                if (!placedItems[i]) { currentItemIndex = i; showCurrentItem(); return; }
+            }
+            while (skippedItems.length > 0) {
+                const nextSkipped = skippedItems.shift();
+                if (!placedItems[nextSkipped]) { currentItemIndex = nextSkipped; showCurrentItem(); return; }
+            }
+            showCurrentItem();
+            showFinalScreen();
+        }
+
+        function showFinalScreen() {
+            const totalItems = CONFIG.items.length;
+            const placedCount = Object.values(placedItems).filter(d => d.tier !== '__discarded__').length;
+            document.getElementById('finalStats').textContent = `${placedCount}/${totalItems}`;
+            document.getElementById('finalOverlay').classList.add('active');
+            playTone(660, 0.18, 0.08);
+        }
+        function closeFinalScreen() { document.getElementById('finalOverlay').classList.remove('active'); }
+        function resetAll() { restartPlacements(); }
+
+        function restartPlacements() {
+            placedItems = {}; skippedItems = []; currentItemIndex = 0; needsPauseIntro = true; selectedItemIndex = -1;
+            isVoting = false; isPaused = false; clearInterval(timerInterval); clearInterval(pauseInterval);
+            ['pauseOverlay', 'endOverlay', 'skipOverlay', 'finalOverlay'].forEach(id => document.getElementById(id).classList.remove('active'));
+            localStorage.setItem('tierlistPlacedItems', '{}');
+            localStorage.setItem('tierlistSkippedItems', '[]');
+            localStorage.setItem('tierlistCurrentIndex', '0');
+            renderTiers(); renderUnplacedItems(); updateProgress(); showCurrentItem(); renderControlPanel(); resetVoting();
+        }
+
+        function updateProgress() {
+            const placed = Object.keys(placedItems).length, total = CONFIG.items.length;
+            document.getElementById('progressInfo').textContent = `${placed}/${total}`;
+            document.getElementById('progressFill').style.width = `${total > 0 ? (placed / total) * 100 : 0}%`;
+        }
+
+        // ==========================================
+        // TWITCH IRC WEBSOCKET (with Tags for Mod Commands)
+        // ==========================================
+        function setConnectionUI(state, label) {
+            document.getElementById('connectionPill').className = `connection-pill ${state}`;
+            document.getElementById('connectionText').textContent = label;
+        }
+
+        function connectToChat() {
+            clearTimeout(wsReconnectTimer);
+            if (!CONFIG.token || !CONFIG.channel) { setConnectionUI('disconnected', t('connNone')); return; }
+
+            CONFIG.token = CONFIG.token.replace(/\s+/g, '');
+            if (!CONFIG.token.startsWith('oauth:')) CONFIG.token = 'oauth:' + CONFIG.token.replace(/^oauth:/i, '');
+            CONFIG.channel = CONFIG.channel.trim().toLowerCase().replace(/\s+/g, '');
+
+            if (!ws || ws.readyState === WebSocket.CLOSED) {
+                setConnectionUI('connecting', t('connConnecting'));
+            }
+
+            try {
+                if (ws) {
+                    const oldWs = ws;
+                    ws = null;
+                    oldWs.onopen = oldWs.onmessage = oldWs.onerror = oldWs.onclose = null;
+                    oldWs.close();
+                }
+
+                const currentSocket = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
+                ws = currentSocket;
+
+                currentSocket.onopen = () => {
+                    if (ws !== currentSocket) return;
+                    currentSocket.send('CAP REQ :twitch.tv/tags');
+                    currentSocket.send(`PASS ${CONFIG.token}`);
+                    currentSocket.send(`NICK ${CONFIG.channel}`);
+                    currentSocket.send(`JOIN #${CONFIG.channel}`);
+                };
+
+                currentSocket.onmessage = (event) => {
+                    if (ws !== currentSocket) return;
+                    const lines = String(event.data).split('\r\n').filter(Boolean);
+                    for (const line of lines) {
+                        if (line.startsWith('PING')) { currentSocket.send('PONG :tmi.twitch.tv'); continue; }
+                        if (line.includes(' 001 ')) {
+                            wsReconnectDelay = 3000;
+                            setConnectionUI('connected', `#${CONFIG.channel}`);
+                            continue;
+                        }
+                        if (line.includes('NOTICE') && line.includes('Login authentication failed')) {
+                            setConnectionUI('disconnected', t('connAuthFail'));
+                            wsManualClose = true;
+                            currentSocket.close();
+                            ws = null;
+                            return;
+                        }
+                        if (line.includes('PRIVMSG')) {
+                            const privIdx = line.indexOf('PRIVMSG');
+                            const prefix = line.slice(0, privIdx);
+                            const rest = line.slice(privIdx);
+                            const userMatch = prefix.match(/:([a-zA-Z0-9_]+)!/);
+                            const msgMatch = rest.match(/PRIVMSG #[^\s]+ :(.+)/);
+                            if (!userMatch || !msgMatch) continue;
+                            const username = userMatch[1];
+                            const chatMessage = msgMatch[1].trim();
+                            const isModOrBroadcaster = prefix.includes('mod=1') || prefix.includes('broadcaster/1') || username.toLowerCase() === CONFIG.channel;
+                            if (CONFIG.modCommands && isModOrBroadcaster && handleModCommand(chatMessage)) continue;
+                            processVote(username, chatMessage);
+                        }
+                    }
+                };
+
+                currentSocket.onerror = () => {
+                    if (ws !== currentSocket) return;
+                };
+
+                currentSocket.onclose = () => {
+                    if (ws !== currentSocket) return;
+                    ws = null;
+                    if (!wsManualClose && CONFIG.token && CONFIG.channel) {
+                        // Silent backoff reconnect without flickering header pill every few seconds
+                        if (wsReconnectDelay >= 12000) setConnectionUI('connecting', t('connReconnecting'));
+                        wsReconnectTimer = setTimeout(connectToChat, wsReconnectDelay);
+                        wsReconnectDelay = Math.min(30000, wsReconnectDelay * 2);
+                    } else if (!wsManualClose) {
+                        setConnectionUI('disconnected', t('connDisconnected'));
+                    }
+                };
+            } catch { setConnectionUI('disconnected', t('connError')); }
+        }
+
+        function handleModCommand(msg) {
+            const lower = msg.toLowerCase().trim();
+            if (lower === '!tl start') { if (isPaused) skipPause(); else startVoting(); return true; }
+            if (lower === '!tl pause') { togglePause(); return true; }
+            if (lower === '!tl next') { if (isVoting) endVoting(); else nextItem(); return true; }
+            if (lower === '!tl skip') { if (isVoting) { votes = Object.fromEntries(CONFIG.tiers.map(tr => [tr.key, 0])); endVoting(); } else nextItem(); return true; }
+            return false;
+        }
+
+        // ==========================================
+        // CHART & VOTING (Single-Vote Correction + Multi-Vote Sum)
+        // ==========================================
+        function initChart() {
+            const ctx = document.getElementById('votingChart').getContext('2d');
+            const maxLabelLen = Math.max(1, ...CONFIG.tiers.map(tr => (tr.name || '').length));
+            const xFontSize = maxLabelLen <= 2 ? 18 : maxLabelLen <= 5 ? 14 : 12;
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: CONFIG.tiers.map(tr => tr.name),
+                    datasets: [{
+                        label: 'Votes',
+                        data: CONFIG.tiers.map(() => 0),
+                        backgroundColor: CONFIG.tiers.map(tr => tr.color + 'D9'),
+                        borderColor: CONFIG.tiers.map(tr => tr.color),
+                        borderWidth: 1, borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, ticks: { color: '#94a3b8', font: { family: 'Inter', size: 11 }, stepSize: 1 }, grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false } },
+                        x: { ticks: { color: '#f1f5f9', font: { family: 'Barlow Condensed', size: xFontSize, weight: '700' }, autoSkip: false }, grid: { display: false } }
+                    },
+                    plugins: { legend: { display: false } },
+                    animation: { duration: 220 }
+                }
+            });
+        }
+
+        function updateChart() {
+            if (!chart) return;
+            chart.data.datasets[0].data = CONFIG.tiers.map(tr => votes[tr.key] || 0);
+            chart.data.datasets[0].backgroundColor = CONFIG.tiers.map(tr => tr.color + 'E6');
+            chart.data.datasets[0].borderColor = CONFIG.tiers.map(tr => tr.color);
+            chart.update();
+        }
+
+        function updateStats() {
+            const total = Object.values(votes).reduce((a, b) => a + b, 0);
+            document.getElementById('totalVotes').textContent = total;
+            document.getElementById('uniqueVoters').textContent = voters.size;
+            const leaderEl = document.getElementById('leader');
+            let leaderText = '—';
+
+            if (CONFIG.votingMode === 'absolute') {
+                let maxVotes = 0, leader = '—';
+                for (const [key, count] of Object.entries(votes)) {
+                    if (count > maxVotes) { maxVotes = count; leader = CONFIG.tiers.find(tr => tr.key === key)?.name || key; }
+                }
+                leaderText = maxVotes > 0 ? leader : '—';
+            } else if (total > 0) {
+                const avgData = calculateAverage();
+                leaderText = `${avgData.average.toFixed(1)} → ${avgData.tierName}`;
+            }
+            leaderEl.textContent = leaderText;
+            leaderEl.title = leaderText;
+            leaderEl.style.fontSize = leaderText.length > 10 ? '16px' : leaderText.length > 5 ? '19px' : '24px';
+        }
+
+        function pushVoteTick(username, tierKey) {
+            if (CONFIG.showVoteTicker === false) return;
+            const ticker = document.getElementById('voteTicker');
+            if (!ticker) return;
+            const el = document.createElement('div');
+            el.className = 'vote-tick';
+            el.textContent = `${username}: ${tierKey}`;
+            ticker.prepend(el);
+            while (ticker.children.length > 3) ticker.lastElementChild.remove();
+            setTimeout(() => el.remove(), 2400);
+        }
+
+        function processVote(username, message) {
+            if (!isVoting || votingPaused) return;
+            const raw = message.trim();
+            const token = CONFIG.allowTextAfterCmd !== false ? raw.split(/\s+/)[0].toUpperCase() : raw.toUpperCase();
+            const matchedTier = CONFIG.tiers.find(tr => tr.key.toUpperCase() === token);
+            if (!matchedTier) return;
+
+            if (allowMultiVote) {
+                // Multi-vote mode: every valid input adds +1
+                voters.add(username);
+                votes[matchedTier.key] = (votes[matchedTier.key] || 0) + 1;
+            } else {
+                // Single-vote mode: allow changing vote before timer ends
+                const prevTierKey = userVotes.get(username);
+                if (prevTierKey === matchedTier.key) return;
+                if (prevTierKey && votes[prevTierKey] > 0) votes[prevTierKey]--;
+                userVotes.set(username, matchedTier.key);
+                voters.add(username);
+                votes[matchedTier.key] = (votes[matchedTier.key] || 0) + 1;
+            }
+            pushVoteTick(username, matchedTier.key);
+            updateChart();
+            updateStats();
+        }
+
+        function toggleVoteMode() {
+            allowMultiVote = !allowMultiVote;
+            const sw = document.getElementById('toggleSwitch');
+            sw.classList.toggle('active', allowMultiVote);
+            sw.setAttribute('aria-pressed', allowMultiVote ? 'true' : 'false');
+        }
+
+        function setPauseButtonState(paused, disabled) {
+            const btn = document.getElementById('pauseBtn');
+            const icon = document.getElementById('pauseBtnIcon');
+            btn.disabled = disabled;
+            btn.classList.toggle('paused', paused);
+            icon.innerHTML = paused ? '<polygon points="6 4 20 12 6 20 6 4"/>' : '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+        }
+
+        function startVoting() {
+            if (isVoting || CONFIG.items.length === 0) return;
+            if (needsPauseIntro && CONFIG.pauseDuration > 0) { needsPauseIntro = false; startPause(); return; }
+            needsPauseIntro = false;
+            isVoting = true; votingPaused = false;
+            timeRemaining = CONFIG.votingDuration;
+            document.getElementById('timer').textContent = timeRemaining;
+            document.getElementById('timer').classList.remove('finished');
+            document.getElementById('startBtn').disabled = true;
+            setPauseButtonState(false, false);
+            playTone(520, 0.08, 0.05);
+
+            timerInterval = setInterval(() => {
+                if (!votingPaused) {
+                    timeRemaining--;
+                    document.getElementById('timer').textContent = timeRemaining;
+                    if (timeRemaining > 0 && timeRemaining <= 3) playTone(440, 0.05, 0.04);
+                    if (timeRemaining <= 0) endVoting();
+                }
+            }, 1000);
+        }
+
+        function togglePause() { if (isVoting) { votingPaused = !votingPaused; setPauseButtonState(votingPaused, false); } }
+
+        function endVoting() {
+            isVoting = false; votingPaused = false; clearInterval(timerInterval);
+            document.getElementById('timer').textContent = '0';
+            document.getElementById('timer').classList.add('finished');
+            document.getElementById('startBtn').disabled = false;
+            setPauseButtonState(false, true);
+            playTone(620, 0.14, 0.06);
+
+            const totalVotes = Object.values(votes).reduce((a, b) => a + b, 0);
+            if (totalVotes === 0) {
+                const overlay = document.getElementById('skipOverlay');
+                overlay.classList.add('active');
+                setTimeout(() => overlay.classList.remove('active'), 2000);
+                skippedItems.push(currentItemIndex);
+                setTimeout(() => {
+                    nextItem();
+                    if (CONFIG.pauseDuration > 0 && currentItemIndex < CONFIG.items.length && !placedItems[currentItemIndex]) startPause();
+                }, 2000);
+                return;
+            }
+            const winner = getWinner();
+            if (winner && !placedItems[currentItemIndex]) placeItem(currentItemIndex, winner);
+            showEndScreen();
+            if (CONFIG.pauseDuration > 0) {
+                setTimeout(() => { if (currentItemIndex < CONFIG.items.length && !placedItems[currentItemIndex]) startPause(); }, 2500);
+            }
+        }
+
+        function showEndScreen() {
+            const overlay = document.getElementById('endOverlay');
+            const messageContainer = document.getElementById('endMessage');
+            if (CONFIG.votingMode === 'average') {
+                const avgData = calculateAverage();
+                const percent = (avgData.average / avgData.maxPoints) * 100;
+                messageContainer.innerHTML = `
+                    <div class="end-title">Result</div>
+                    <div class="end-score">${avgData.average.toFixed(2)}</div>
+                    <div class="end-score-label">Average / ${avgData.maxPoints}.0</div>
+                    <div class="end-progress"><div class="end-progress-fill" style="width:${percent}%; background:${avgData.tierColor}; color:${getContrastTextColor(avgData.tierColor)};">${percent.toFixed(0)}%</div></div>
+                    <div class="end-subtitle">Tier: <strong style="color:${avgData.tierColor};">${escapeHtml(avgData.tierName)}</strong></div>
+                    <div class="end-breakdown">
+                        ${avgData.breakdown.map(b => `<div class="breakdown-item"><div class="breakdown-tier" style="color:${b.color};">${escapeHtml(b.tierName)} (${b.points}pt)</div><div class="breakdown-votes">${b.voteCount}</div><div class="breakdown-points">${b.totalPoints}pt</div></div>`).join('')}
+                        <div class="breakdown-total">${avgData.totalVotes} votes • ${avgData.totalPoints} pts</div>
+                    </div>
+                `;
+            } else {
+                const total = Object.values(votes).reduce((a, b) => a + b, 0);
+                let maxVotes = 0, winnerName = '—', winnerColor = 'var(--accent)';
+                for (const [key, count] of Object.entries(votes)) {
+                    if (count > maxVotes) { maxVotes = count; const tr = CONFIG.tiers.find(x => x.key === key); winnerName = tr ? tr.name : key; winnerColor = tr ? tr.color : 'var(--accent)'; }
+                }
+                const breakdown = CONFIG.tiers.map(tr => ({ tierName: tr.name, voteCount: votes[tr.key] || 0, color: tr.color })).filter(b => b.voteCount > 0);
+                messageContainer.innerHTML = `
+                    <div class="end-title">Result</div>
+                    <div class="end-subtitle">Winner: <strong style="color:${winnerColor};">${escapeHtml(winnerName)}</strong></div>
+                    <div class="end-score">${maxVotes}</div>
+                    <div class="end-score-label">${maxVotes} / ${total} (${total > 0 ? ((maxVotes / total) * 100).toFixed(0) : 0}%)</div>
+                    <div class="end-breakdown">
+                        ${breakdown.map(b => `<div class="breakdown-item"><div class="breakdown-tier" style="color:${b.color};">${escapeHtml(b.tierName)}</div><div class="breakdown-votes">${b.voteCount} (${total > 0 ? ((b.voteCount / total) * 100).toFixed(1) : 0}%)</div></div>`).join('')}
+                        <div class="breakdown-total">${total} votes • ${voters.size} voters</div>
+                    </div>
+                `;
+            }
+            overlay.classList.add('active');
+            setTimeout(() => overlay.classList.remove('active'), 2500);
+        }
+
+        function calculateAverage() {
+            let totalPoints = 0, totalVotes = 0;
+            const tierCount = CONFIG.tiers.length;
+            CONFIG.tiers.forEach((tr, i) => { const p = tierCount - i, c = votes[tr.key] || 0; totalPoints += p * c; totalVotes += c; });
+            if (totalVotes === 0) return { average: 0, tierKey: null, tierName: '—', breakdown: [] };
+            const average = totalPoints / totalVotes;
+            const breakdown = CONFIG.tiers.map((tr, i) => ({ tierName: tr.name, tierKey: tr.key, points: tierCount - i, voteCount: votes[tr.key] || 0, totalPoints: (tierCount - i) * (votes[tr.key] || 0), color: tr.color })).filter(b => b.voteCount > 0);
+            const tier = CONFIG.tiers[mapAverageToTierIndex(average, tierCount)];
+            return { average, maxPoints: tierCount, tierKey: tier.key, tierName: tier.name, tierColor: tier.color, breakdown, totalVotes, totalPoints };
+        }
+
+        function mapAverageToTierIndex(average, tierCount) {
+            const clamped = Math.max(1, Math.min(tierCount, average));
+            if (Math.abs((clamped % 1) - 0.5) < 0.001) {
+                if (CONFIG.tieBreaker === 'round_up') return Math.max(0, Math.min(tierCount - 1, tierCount - Math.ceil(clamped)));
+                if (CONFIG.tieBreaker === 'round_down') return Math.max(0, Math.min(tierCount - 1, tierCount - Math.floor(clamped)));
+                let maxVotes = 0, winnerIdx = Math.max(0, Math.min(tierCount - 1, tierCount - Math.round(clamped)));
+                CONFIG.tiers.forEach((tr, i) => { if ((votes[tr.key] || 0) > maxVotes) { maxVotes = votes[tr.key]; winnerIdx = i; } });
+                return winnerIdx;
+            }
+            return Math.max(0, Math.min(tierCount - 1, tierCount - Math.round(clamped)));
+        }
+
+        function getWinner() {
+            if (CONFIG.votingMode === 'average') return calculateAverage().tierKey;
+            let maxVotes = 0, winner = null;
+            for (const [key, count] of Object.entries(votes)) if (count > maxVotes) { maxVotes = count; winner = key; }
+            return winner;
+        }
+
+        function resetVoting() {
+            isVoting = false;
+            votingPaused = false;
+            isPaused = false;
+            needsPauseIntro = true;
+            clearInterval(timerInterval);
+            clearInterval(pauseInterval);
+            ['pauseOverlay', 'endOverlay', 'skipOverlay'].forEach(id => document.getElementById(id).classList.remove('active'));
+            CONFIG.tiers.forEach(tr => { votes[tr.key] = 0; });
+            userVotes.clear();
+            voters = new Set();
+            document.getElementById('voteTicker').innerHTML = '';
+            timeRemaining = CONFIG.votingDuration;
+            document.getElementById('timer').textContent = timeRemaining;
+            document.getElementById('timer').classList.remove('finished');
+            document.getElementById('startBtn').disabled = CONFIG.items.length === 0;
+            setPauseButtonState(false, true);
+            updateChart();
+            updateStats();
+            showCurrentItem();
+        }
+
+        // ==========================================
+        // PAUSE SCREEN
+        // ==========================================
+        function startPause() {
+            if (!CONFIG.items.some((_, idx) => !placedItems[idx])) return;
+            isPaused = true; pauseTimeRemaining = CONFIG.pauseDuration;
+            const imgEl = document.getElementById('pausePreviewImage'), nameEl = document.getElementById('pausePreviewName');
+            if (currentItemIndex < CONFIG.items.length && !placedItems[currentItemIndex] && CONFIG.items[currentItemIndex]) {
+                imgEl.src = getItemImage(CONFIG.items[currentItemIndex]); imgEl.style.display = 'block';
+                nameEl.textContent = CONFIG.items[currentItemIndex].name || 'Next Item';
+            } else { imgEl.style.display = 'none'; imgEl.src = ''; nameEl.textContent = '—'; }
+
+            const pauseCriteria = document.getElementById('pauseCriteria'), pauseCriteriaContent = document.getElementById('pauseCriteriaContent');
+            const validCriteria = CONFIG.criteria.items.filter(c => c && c.trim() !== '');
+            if (CONFIG.criteria.enabled && validCriteria.length > 0) {
+                pauseCriteriaContent.innerHTML = validCriteria.map(c => `<div class="pause-criterion">${escapeHtml(c)}</div>`).join('');
+                pauseCriteria.style.display = 'block';
+            } else pauseCriteria.style.display = 'none';
+
+            document.getElementById('pauseTimer').textContent = pauseTimeRemaining;
+            document.getElementById('pauseOverlay').classList.add('active');
+            pauseInterval = setInterval(() => {
+                pauseTimeRemaining--;
+                document.getElementById('pauseTimer').textContent = pauseTimeRemaining;
+                if (pauseTimeRemaining <= 0) endPause();
+            }, 1000);
+        }
+
+        function endPause() { isPaused = false; clearInterval(pauseInterval); document.getElementById('pauseOverlay').classList.remove('active'); needsPauseIntro = false; showCurrentItem(); resetVoting(); startVoting(); }
+        function skipPause() { clearInterval(pauseInterval); endPause(); }
+
+        // ==========================================
+        // KEYBOARD SHORTCUTS
+        // ==========================================
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') { closeColorPicker(); closeTokenHelper(); toggleSettings(false); return; }
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+            switch (e.key.toLowerCase()) {
+                case 'n': if (isVoting) endVoting(); else nextItem(); break;
+                case ' ': if (isVoting) { e.preventDefault(); togglePause(); } break;
+                case 'u':
+                    if (currentItemIndex > 0 || placedItems[currentItemIndex]) {
+                        if (isVoting) { isVoting = false; votingPaused = false; clearInterval(timerInterval); }
+                        if (isPaused) { isPaused = false; clearInterval(pauseInterval); document.getElementById('pauseOverlay').classList.remove('active'); }
+                        if (placedItems[currentItemIndex]) delete placedItems[currentItemIndex];
+                        else if (currentItemIndex > 0) { currentItemIndex--; delete placedItems[currentItemIndex]; }
+                        const skipIdx = skippedItems.indexOf(currentItemIndex);
+                        if (skipIdx > -1) skippedItems.splice(skipIdx, 1);
+                        needsPauseIntro = true;
+                        localStorage.setItem('tierlistPlacedItems', JSON.stringify(placedItems));
+                        localStorage.setItem('tierlistSkippedItems', JSON.stringify(skippedItems));
+                        localStorage.setItem('tierlistCurrentIndex', currentItemIndex.toString());
+                        renderTiers(); renderUnplacedItems(); showCurrentItem(); updateProgress(); resetVoting();
+                    }
+                    break;
+            }
+        });
+
+        init();
+    </script>
+</body>
+</html>
